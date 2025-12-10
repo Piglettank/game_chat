@@ -1,5 +1,5 @@
 /**
- * Game Chat Widget Embed Script
+ * Game Night Widget Embed Script
  * 
  * Usage:
  * <script src="https://your-domain.com/embed.js"></script>
@@ -33,7 +33,7 @@
     instances: {},
 
     /**
-     * Initialize a Game Chat widget instance
+     * Initialize a Game Night widget instance
      * @param {Object} config - Configuration object
      * @param {string} config.containerId - ID of the container element
      * @param {string} config.widgetUrl - URL where the widget is hosted

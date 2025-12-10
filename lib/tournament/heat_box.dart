@@ -13,34 +13,36 @@ class ImmediatePanGestureRecognizer extends PanGestureRecognizer {
 
 class HeatBox extends StatefulWidget {
   final Heat heat;
-  final Function(Offset) onMoved;
-  final VoidCallback onUpdated;
-  final VoidCallback onDelete;
-  final Function(Offset) onStartConnectionDrag;
-  final Function(Offset) onUpdateConnectionDrag;
-  final Function(String?) onEndConnectionDrag;
-  final Function(Player) onPlayerDropped;
+  final Function(Offset)? onMoved;
+  final VoidCallback? onUpdated;
+  final VoidCallback? onDelete;
+  final Function(Offset)? onStartConnectionDrag;
+  final Function(Offset)? onUpdateConnectionDrag;
+  final Function(String?)? onEndConnectionDrag;
+  final Function(Player)? onPlayerDropped;
   final List<Connection> connections;
-  final Function(String) onDeleteConnection;
+  final Function(String)? onDeleteConnection;
   final double Function() getScale;
   final VoidCallback? onDragStarted;
   final VoidCallback? onDragEnded;
+  final bool isReadOnly;
 
   const HeatBox({
     super.key,
     required this.heat,
-    required this.onMoved,
-    required this.onUpdated,
-    required this.onDelete,
-    required this.onStartConnectionDrag,
-    required this.onUpdateConnectionDrag,
-    required this.onEndConnectionDrag,
-    required this.onPlayerDropped,
+    this.onMoved,
+    this.onUpdated,
+    this.onDelete,
+    this.onStartConnectionDrag,
+    this.onUpdateConnectionDrag,
+    this.onEndConnectionDrag,
+    this.onPlayerDropped,
     required this.connections,
-    required this.onDeleteConnection,
+    this.onDeleteConnection,
     required this.getScale,
     this.onDragStarted,
     this.onDragEnded,
+    this.isReadOnly = false,
   });
 
   @override
@@ -76,26 +78,30 @@ class _HeatBoxState extends State<HeatBox> {
   }
 
   void _addPlayer() {
+    if (widget.isReadOnly || widget.onUpdated == null) return;
     widget.heat.players.add(
       Player(name: 'Player ${widget.heat.players.length + 1}'),
     );
-    widget.onUpdated();
+    widget.onUpdated!();
   }
 
   void _removePlayer(String playerId) {
+    if (widget.isReadOnly || widget.onUpdated == null) return;
     widget.heat.players.removeWhere((p) => p.id == playerId);
-    widget.onUpdated();
+    widget.onUpdated!();
   }
 
   void _updatePlayerName(String playerId, String newName) {
+    if (widget.isReadOnly || widget.onUpdated == null) return;
     final player = widget.heat.players.firstWhere((p) => p.id == playerId);
     player.name = newName;
-    widget.onUpdated();
+    widget.onUpdated!();
   }
 
   void _toggleFinal() {
+    if (widget.isReadOnly || widget.onUpdated == null) return;
     widget.heat.isFinal = !widget.heat.isFinal;
-    widget.onUpdated();
+    widget.onUpdated!();
   }
 
   BoxDecoration _getBoxDecoration() {
@@ -121,18 +127,20 @@ class _HeatBoxState extends State<HeatBox> {
   }
 
   void _handlePanStart(DragStartDetails details) {
-    setState(() => _isDragging = true);
-    widget.onDragStarted?.call();
+    if (!widget.isReadOnly && widget.onMoved != null) {
+      setState(() => _isDragging = true);
+      widget.onDragStarted?.call();
+    }
   }
 
   void _handlePanUpdate(DragUpdateDetails details) {
-    if (_isDragging) {
+    if (_isDragging && widget.onMoved != null && !widget.isReadOnly) {
       // Get current scale and convert screen delta to canvas delta
       final scale = widget.getScale();
       final effectiveScale = scale > 0 ? scale : 1.0;
       final newX = widget.heat.x + (details.delta.dx / effectiveScale);
       final newY = widget.heat.y + (details.delta.dy / effectiveScale);
-      widget.onMoved(Offset(newX, newY));
+      widget.onMoved!(Offset(newX, newY));
     }
   }
 
@@ -144,9 +152,11 @@ class _HeatBoxState extends State<HeatBox> {
   @override
   Widget build(BuildContext context) {
     return DragTarget<Player>(
-      onAcceptWithDetails: (details) {
-        widget.onPlayerDropped(details.data);
-      },
+      onAcceptWithDetails: widget.isReadOnly || widget.onPlayerDropped == null
+          ? null
+          : (details) {
+              widget.onPlayerDropped!(details.data);
+            },
       builder: (context, candidateData, rejectedData) {
         final isReceivingPlayer = candidateData.isNotEmpty;
         return Container(
@@ -172,22 +182,25 @@ class _HeatBoxState extends State<HeatBox> {
                       children: [
                         // Final toggle
                         GestureDetector(
-                          onTap: _toggleFinal,
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: widget.heat.isFinal
-                                  ? const Color(0xFFffd700)
-                                  : const Color(0xFF3a3a4a),
-                            ),
-                            child: Icon(
-                              Icons.emoji_events,
-                              size: 16,
-                              color: widget.heat.isFinal
-                                  ? Colors.black
-                                  : Colors.white54,
+                          onTap: widget.isReadOnly ? null : _toggleFinal,
+                          child: Opacity(
+                            opacity: widget.isReadOnly ? 0.5 : 1.0,
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: widget.heat.isFinal
+                                    ? const Color(0xFFffd700)
+                                    : const Color(0xFF3a3a4a),
+                              ),
+                              child: Icon(
+                                Icons.emoji_events,
+                                size: 16,
+                                color: widget.heat.isFinal
+                                    ? Colors.black
+                                    : Colors.white54,
+                              ),
                             ),
                           ),
                         ),
@@ -213,25 +226,27 @@ class _HeatBoxState extends State<HeatBox> {
                                   ),
                                   onSubmitted: (value) {
                                     widget.heat.title = value;
-                                    widget.onUpdated();
+                                    widget.onUpdated?.call();
                                     setState(() {
                                       _isEditingTitle = false;
                                     });
                                   },
                                   onEditingComplete: () {
                                     widget.heat.title = _titleController.text;
-                                    widget.onUpdated();
+                                    widget.onUpdated?.call();
                                     setState(() {
                                       _isEditingTitle = false;
                                     });
                                   },
                                 )
                               : GestureDetector(
-                                  onDoubleTap: () {
-                                    setState(() {
-                                      _isEditingTitle = true;
-                                    });
-                                  },
+                                  onDoubleTap: widget.isReadOnly
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _isEditingTitle = true;
+                                          });
+                                        },
                                   child: Text(
                                     widget.heat.isFinal
                                         ? '🏆 ${widget.heat.title}'
@@ -247,22 +262,23 @@ class _HeatBoxState extends State<HeatBox> {
                                 ),
                         ),
                         // Delete button
-                        GestureDetector(
-                          onTap: widget.onDelete,
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFF3a3a4a),
-                            ),
-                            child: const Icon(
-                              Icons.close,
-                              size: 14,
-                              color: Colors.white54,
+                        if (!widget.isReadOnly && widget.onDelete != null)
+                          GestureDetector(
+                            onTap: widget.onDelete,
+                            child: Container(
+                              width: 24,
+                              height: 24,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF3a3a4a),
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                size: 14,
+                                color: Colors.white54,
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -272,17 +288,21 @@ class _HeatBoxState extends State<HeatBox> {
                         padding: const EdgeInsets.only(bottom: 8),
                         child: PlayerCard(
                           player: player,
-                          onNameChanged: (name) =>
-                              _updatePlayerName(player.id, name),
-                          onDelete: () => _removePlayer(player.id),
+                          onNameChanged: widget.isReadOnly
+                              ? (_) {}
+                              : (name) => _updatePlayerName(player.id, name),
+                          onDelete: widget.isReadOnly
+                              ? () {}
+                              : () => _removePlayer(player.id),
                         ),
                       ),
                     ),
                     // Add player button
-                    Center(
-                      child: GestureDetector(
-                        onTap: _addPlayer,
-                        child: Container(
+                    if (!widget.isReadOnly)
+                      Center(
+                        child: GestureDetector(
+                          onTap: _addPlayer,
+                          child: Container(
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
@@ -303,30 +323,31 @@ class _HeatBoxState extends State<HeatBox> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    // Drag handle bar at the bottom - using RawGestureDetector for immediate response
-                    RawGestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      gestures: <Type, GestureRecognizerFactory>{
-                        ImmediatePanGestureRecognizer:
-                            GestureRecognizerFactoryWithHandlers<
-                              ImmediatePanGestureRecognizer
-                            >(() => ImmediatePanGestureRecognizer(), (
-                              ImmediatePanGestureRecognizer instance,
-                            ) {
-                              instance
-                                ..onStart = _handlePanStart
-                                ..onUpdate = _handlePanUpdate
-                                ..onEnd = _handlePanEnd;
-                            }),
-                      },
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.move,
-                        onEnter: (_) =>
-                            setState(() => _isHoveringMoveBar = true),
-                        onExit: (_) =>
-                            setState(() => _isHoveringMoveBar = false),
-                        child: AnimatedContainer(
+                    if (!widget.isReadOnly) ...[
+                      const SizedBox(height: 8),
+                      // Drag handle bar at the bottom - using RawGestureDetector for immediate response
+                      RawGestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        gestures: <Type, GestureRecognizerFactory>{
+                          ImmediatePanGestureRecognizer:
+                              GestureRecognizerFactoryWithHandlers<
+                                ImmediatePanGestureRecognizer
+                              >(() => ImmediatePanGestureRecognizer(), (
+                                ImmediatePanGestureRecognizer instance,
+                              ) {
+                                instance
+                                  ..onStart = _handlePanStart
+                                  ..onUpdate = _handlePanUpdate
+                                  ..onEnd = _handlePanEnd;
+                              }),
+                        },
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.move,
+                          onEnter: (_) =>
+                              setState(() => _isHoveringMoveBar = true),
+                          onExit: (_) =>
+                              setState(() => _isHoveringMoveBar = false),
+                          child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -390,9 +411,10 @@ class _HeatBoxState extends State<HeatBox> {
                               ),
                             ],
                           ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -403,9 +425,12 @@ class _HeatBoxState extends State<HeatBox> {
                 bottom: 0,
                 child: Center(
                   child: DragTarget<String>(
-                    onAcceptWithDetails: (details) {
-                      widget.onEndConnectionDrag(widget.heat.id);
-                    },
+                    onAcceptWithDetails: widget.isReadOnly ||
+                            widget.onEndConnectionDrag == null
+                        ? null
+                        : (details) {
+                            widget.onEndConnectionDrag!(widget.heat.id);
+                          },
                     builder: (context, candidateData, rejectedData) {
                       final isReceiving = candidateData.isNotEmpty;
                       return MouseRegion(
@@ -479,20 +504,29 @@ class _HeatBoxState extends State<HeatBox> {
                           ],
                         ),
                       ),
-                      onDragStarted: () {
-                        widget.onStartConnectionDrag(
-                          Offset(
-                            widget.heat.x + widget.heat.width,
-                            widget.heat.y + (widget.heat.height / 2),
-                          ),
-                        );
-                      },
-                      onDragUpdate: (details) {
-                        widget.onUpdateConnectionDrag(details.globalPosition);
-                      },
-                      onDragEnd: (details) {
-                        widget.onEndConnectionDrag(null);
-                      },
+                      onDragStarted: widget.isReadOnly ||
+                              widget.onStartConnectionDrag == null
+                          ? null
+                          : () {
+                              widget.onStartConnectionDrag!(
+                                Offset(
+                                  widget.heat.x + widget.heat.width,
+                                  widget.heat.y + (widget.heat.height / 2),
+                                ),
+                              );
+                            },
+                      onDragUpdate: widget.isReadOnly ||
+                              widget.onUpdateConnectionDrag == null
+                          ? null
+                          : (details) {
+                              widget.onUpdateConnectionDrag!(details.globalPosition);
+                            },
+                      onDragEnd: widget.isReadOnly ||
+                              widget.onEndConnectionDrag == null
+                          ? null
+                          : (details) {
+                              widget.onEndConnectionDrag!(null);
+                            },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         width: _isHoveringOutputKnob ? 26 : 20,

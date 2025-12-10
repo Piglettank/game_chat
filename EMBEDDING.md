@@ -1,6 +1,6 @@
-# Embedding Game Chat Widget
+# Embedding Game Night Widget
 
-This document explains how to embed the Game Chat widget into your website.
+This document explains how to embed the Game Night widget into your website.
 
 ## Quick Start
 

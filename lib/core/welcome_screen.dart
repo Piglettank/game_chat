@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../chat/chat_screen.dart';
-import '../tournament/tournament_bracket.dart';
+import '../tournament/bracket_list_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   final String chatId;
@@ -24,7 +24,7 @@ class WelcomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Welcome to Game Chat',
+                'Welcome to Game Night',
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -61,7 +61,7 @@ class WelcomeScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const TournamentBracketHome(),
+                        builder: (context) => const BracketListScreen(),
                       ),
                     );
                   },

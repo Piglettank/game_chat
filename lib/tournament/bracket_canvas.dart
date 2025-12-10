@@ -7,12 +7,14 @@ class BracketCanvas extends StatefulWidget {
   final Tournament tournament;
   final VoidCallback onTournamentChanged;
   final Function(String heatId) onDeleteHeat;
+  final bool isReadOnly;
 
   const BracketCanvas({
     super.key,
     required this.tournament,
     required this.onTournamentChanged,
     required this.onDeleteHeat,
+    this.isReadOnly = false,
   });
 
   @override
@@ -177,25 +179,26 @@ class _BracketCanvasState extends State<BracketCanvas> {
                         heat: heat,
                         getScale: () =>
                             _transformationController.value.getMaxScaleOnAxis(),
-                        onMoved: (newPos) => _onHeatMoved(heat.id, newPos),
-                        onUpdated: _onHeatUpdated,
-                        onDelete: () => widget.onDeleteHeat(heat.id),
-                        onStartConnectionDrag: (startPoint) =>
+                        onMoved: widget.isReadOnly ? null : (newPos) => _onHeatMoved(heat.id, newPos),
+                        onUpdated: widget.isReadOnly ? null : _onHeatUpdated,
+                        onDelete: widget.isReadOnly ? null : () => widget.onDeleteHeat(heat.id),
+                        onStartConnectionDrag: widget.isReadOnly ? null : (startPoint) =>
                             _startConnectionDrag(heat.id, startPoint),
-                        onUpdateConnectionDrag: _updateConnectionDrag,
-                        onEndConnectionDrag: _endConnectionDrag,
-                        onPlayerDropped: (player) =>
+                        onUpdateConnectionDrag: widget.isReadOnly ? null : _updateConnectionDrag,
+                        onEndConnectionDrag: widget.isReadOnly ? null : _endConnectionDrag,
+                        onPlayerDropped: widget.isReadOnly ? null : (player) =>
                             _onPlayerDroppedOnHeat(heat.id, player),
                         connections: widget.tournament.getConnectionsFromHeat(
                           heat.id,
                         ),
-                        onDeleteConnection: _deleteConnection,
-                        onDragStarted: () =>
+                        onDeleteConnection: widget.isReadOnly ? null : _deleteConnection,
+                        onDragStarted: widget.isReadOnly ? null : () =>
                             setState(() => _isBoxDragging = true),
-                        onDragEnded: () {
+                        onDragEnded: widget.isReadOnly ? null : () {
                           setState(() => _isBoxDragging = false);
                           _onHeatDragEnded(heat.id);
                         },
+                        isReadOnly: widget.isReadOnly,
                       ),
                     ),
                   ),

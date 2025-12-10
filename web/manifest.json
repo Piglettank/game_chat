@@ -1,11 +1,11 @@
 {
-    "name": "game_chat",
-    "short_name": "game_chat",
+    "name": "Game Night",
+    "short_name": "Game Night",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Game Night - Chat and play games with friends",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

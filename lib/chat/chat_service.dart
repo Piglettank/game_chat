@@ -231,11 +231,11 @@ class ChatService {
   String _getChoiceDisplayName(String choice) {
     switch (choice) {
       case 'rock':
-        return '? rock';
+        return '✊ rock';
       case 'paper':
-        return '? paper';
+        return '✋ paper';
       case 'scissors':
-        return '?? scissors';
+        return '✌️ scissors';
       default:
         return choice;
     }

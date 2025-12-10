@@ -7,6 +7,7 @@ import '../challenges/challenge.dart';
 import '../challenges/challenge_dialog.dart';
 import '../challenges/challenge_notification.dart';
 import '../challenges/rock_paper_scissors_game.dart';
+import '../leaderboard/leaderboard_widget.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -31,7 +32,9 @@ class _ChatScreenState extends State<ChatScreen> {
   Timer? _heartbeatTimer;
   Timer? _completionDelayTimer;
   Challenge? _activeChallenge;
-  bool _isUsersMenuOpen = true;
+  bool _isUsersMenuOpen = false;
+  bool _isLeaderboardEditMode = false;
+  final GlobalKey<LeaderboardWidgetState> _leaderboardKey = GlobalKey<LeaderboardWidgetState>();
 
   // Local message list to prevent full rebuilds
   List<Message> _messages = [];
@@ -198,7 +201,7 @@ class _ChatScreenState extends State<ChatScreen> {
             if (challenge.isCompleted &&
                 challenge.result != null &&
                 _completionDelayTimer == null) {
-              _completionDelayTimer = Timer(const Duration(seconds: 6), () {
+              _completionDelayTimer = Timer(const Duration(milliseconds: 2500), () {
                 if (mounted) {
                   // After 2 seconds, check if there's a new active challenge
                   _chatService.getActiveChallenges(widget.userId).first.then((
@@ -239,9 +242,9 @@ class _ChatScreenState extends State<ChatScreen> {
             _activeChallenge = challenge;
           });
 
-          _completionDelayTimer = Timer(const Duration(seconds: 6), () {
+          _completionDelayTimer = Timer(const Duration(milliseconds: 2500), () {
             if (mounted) {
-              // After 2 seconds, check if there's a new active challenge
+              // After 2.5 seconds, check if there's a new active challenge
               _chatService.getActiveChallenges(widget.userId).first.then((
                 challenges,
               ) {
@@ -350,212 +353,261 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      body: Row(
         children: [
+          // Leaderboard section (left half)
           Expanded(
-            child: Row(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                border: Border(
+                  right: BorderSide(
+                    color: Theme.of(context).dividerColor,
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: _buildLeaderboard(context),
+            ),
+          ),
+          // Chat section (right half)
+          Expanded(
+            child: Column(
               children: [
-                Expanded(
-                  child: Stack(
-                    children: [
-                      Column(
-                        children: [
-                          Expanded(
-                            child: _messages.isEmpty && _challenges.isEmpty
-                                ? const Center(
-                                    child: Text(
-                                      'No messages yet. Start the conversation!',
-                                    ),
-                                  )
-                                : ListView.builder(
-                                    key: const ValueKey('messages_list'),
-                                    controller: _scrollController,
-                                    padding: const EdgeInsets.all(8.0),
-                                    itemCount:
-                                        _challenges.length + _messages.length,
-                                    reverse: true,
-                                    addAutomaticKeepAlives: false,
-                                    addRepaintBoundaries: true,
-                                    itemBuilder: (context, index) {
-                                      // Show challenges first (will appear at bottom with reverse: true)
-                                      if (index < _challenges.length) {
-                                        final challenge = _challenges[index];
-                                        return ChallengeNotification(
-                                          key: ValueKey(
-                                            'challenge_${challenge.id}',
-                                          ),
-                                          challenge: challenge,
-                                          onAccept: () =>
-                                              _acceptChallenge(challenge),
-                                          onReject: () =>
-                                              _rejectChallenge(challenge),
-                                        );
-                                      }
-
-                                      // Show messages after challenges (will appear at top with reverse: true)
-                                      final messageIndex =
-                                          index - _challenges.length;
-                                      final message =
-                                          _messages[_messages.length -
-                                              1 -
-                                              messageIndex];
-                                      return _MessageWidget(
-                                        key: ValueKey('message_${message.id}'),
-                                        message: message,
-                                        isOwnMessage:
-                                            message.userId == widget.userId,
-                                        formatTimestamp: _formatTimestamp,
-                                      );
-                                    },
-                                  ),
-                          ),
-                          // Active game UI at the bottom
-                          if (_activeChallenge != null)
-                            RockPaperScissorsGame(
-                              challenge: _activeChallenge!,
-                              currentUserId: widget.userId,
-                              onChoiceSelected: _makeChoice,
-                            ),
-                        ],
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                        width: 1,
                       ),
-                      Positioned(
-                        top: 8.0,
-                        right: 8.0,
-                        child: IconButton(
-                          icon: Icon(
-                            _isUsersMenuOpen
-                                ? Icons.people
-                                : Icons.people_outline,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isUsersMenuOpen = !_isUsersMenuOpen;
-                            });
-                          },
-                          tooltip: 'Toggle active users',
-                          style: IconButton.styleFrom(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.surface,
-                            elevation: 2,
-                          ),
-                        ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.chat,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Chat',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     ],
                   ),
                 ),
-                if (_isUsersMenuOpen)
-                  Container(
-                    width: 200,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest
-                          .withValues(alpha: 0.3),
-                      border: Border(
-                        left: BorderSide(
-                          color: Theme.of(context).dividerColor,
-                          width: 1,
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            Column(
+                              children: [
+                                Expanded(
+                                  child: _messages.isEmpty && _challenges.isEmpty
+                                      ? const Center(
+                                          child: Text(
+                                            'No messages yet. Start the conversation!',
+                                          ),
+                                        )
+                                      : ListView.builder(
+                                          key: const ValueKey('messages_list'),
+                                          controller: _scrollController,
+                                          padding: const EdgeInsets.all(8.0),
+                                          itemCount:
+                                              _challenges.length + _messages.length,
+                                          reverse: true,
+                                          addAutomaticKeepAlives: false,
+                                          addRepaintBoundaries: true,
+                                          itemBuilder: (context, index) {
+                                            // Show challenges first (will appear at bottom with reverse: true)
+                                            if (index < _challenges.length) {
+                                              final challenge = _challenges[index];
+                                              return ChallengeNotification(
+                                                key: ValueKey(
+                                                  'challenge_${challenge.id}',
+                                                ),
+                                                challenge: challenge,
+                                                onAccept: () =>
+                                                    _acceptChallenge(challenge),
+                                                onReject: () =>
+                                                    _rejectChallenge(challenge),
+                                              );
+                                            }
+
+                                            // Show messages after challenges (will appear at top with reverse: true)
+                                            final messageIndex =
+                                                index - _challenges.length;
+                                            final message =
+                                                _messages[_messages.length -
+                                                    1 -
+                                                    messageIndex];
+                                            return _MessageWidget(
+                                              key: ValueKey('message_${message.id}'),
+                                              message: message,
+                                              isOwnMessage:
+                                                  message.userId == widget.userId,
+                                              formatTimestamp: _formatTimestamp,
+                                            );
+                                          },
+                                        ),
+                                ),
+                                // Active game UI at the bottom
+                                if (_activeChallenge != null)
+                                  RockPaperScissorsGame(
+                                    challenge: _activeChallenge!,
+                                    currentUserId: widget.userId,
+                                    onChoiceSelected: _makeChoice,
+                                  ),
+                              ],
+                            ),
+                            Positioned(
+                              top: 8.0,
+                              right: 8.0,
+                              child: IconButton(
+                                icon: Icon(
+                                  _isUsersMenuOpen
+                                      ? Icons.people
+                                      : Icons.people_outline,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _isUsersMenuOpen = !_isUsersMenuOpen;
+                                  });
+                                },
+                                tooltip: 'Toggle active users',
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.surface,
+                                  elevation: 2,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      if (_isUsersMenuOpen)
                         Container(
-                          padding: const EdgeInsets.all(16.0),
+                          width: 200,
                           decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.3),
                             border: Border(
-                              bottom: BorderSide(
+                              left: BorderSide(
                                 color: Theme.of(context).dividerColor,
                                 width: 1,
                               ),
                             ),
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                Icons.people,
-                                size: 20,
-                                color: Theme.of(context).colorScheme.primary,
+                              Container(
+                                padding: const EdgeInsets.all(16.0),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Theme.of(context).dividerColor,
+                                      width: 1,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.people,
+                                      size: 20,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Active Users — ${_activeUsers.length}',
+                                      style: Theme.of(context).textTheme.titleSmall
+                                          ?.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Active Users — ${_activeUsers.length}',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
+                              Expanded(child: _buildActiveUsersList(context)),
                             ],
                           ),
                         ),
-                        Expanded(child: _buildActiveUsersList(context)),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              border: Border(
-                top: BorderSide(
-                  color: Theme.of(context).dividerColor,
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(
-                            context,
-                          ).dividerColor.withValues(alpha: 0.5),
-                          width: 1,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(
-                            context,
-                          ).dividerColor.withValues(alpha: 0.5),
-                          width: 1,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(
-                            context,
-                          ).dividerColor.withValues(alpha: 0.7),
-                          width: 1,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 12.0,
-                      ),
-                    ),
-                    maxLines: 1,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8.0),
-                IconButton(
-                  onPressed: _sendMessage,
-                  icon: const Icon(Icons.send),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(12.0),
+                Container(
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    border: Border(
+                      top: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          decoration: InputDecoration(
+                            hintText: 'Type a message...',
+                            border: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Theme.of(
+                                  context,
+                                ).dividerColor.withValues(alpha: 0.5),
+                                width: 1,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Theme.of(
+                                  context,
+                                ).dividerColor.withValues(alpha: 0.5),
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Theme.of(
+                                  context,
+                                ).dividerColor.withValues(alpha: 0.7),
+                                width: 1,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 12.0,
+                            ),
+                          ),
+                          maxLines: 1,
+                          textCapitalization: TextCapitalization.sentences,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _sendMessage(),
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+                      IconButton(
+                        onPressed: _sendMessage,
+                        icon: const Icon(Icons.send),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.all(12.0),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -563,6 +615,89 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLeaderboard(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).dividerColor,
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.emoji_events,
+                size: 20,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Leaderboard',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const Spacer(),
+              if (_isLeaderboardEditMode) ...[
+                IconButton(
+                  icon: const Icon(Icons.cancel, size: 20),
+                  onPressed: () {
+                    _leaderboardKey.currentState?.cancelEdit();
+                    setState(() {
+                      _isLeaderboardEditMode = false;
+                    });
+                  },
+                  tooltip: 'Cancel editing',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  iconSize: 20,
+                ),
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: const Icon(Icons.save, size: 20),
+                  onPressed: () {
+                    _leaderboardKey.currentState?.saveLeaderboard();
+                  },
+                  tooltip: 'Save leaderboard',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  iconSize: 20,
+                ),
+              ] else
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      _isLeaderboardEditMode = true;
+                    });
+                  },
+                  tooltip: 'Edit leaderboard',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  iconSize: 20,
+                ),
+            ],
+          ),
+        ),
+        LeaderboardWidget(
+          key: _leaderboardKey,
+          isEditMode: _isLeaderboardEditMode,
+          onSave: () {
+            setState(() {
+              _isLeaderboardEditMode = false;
+            });
+          },
+        ),
+      ],
     );
   }
 

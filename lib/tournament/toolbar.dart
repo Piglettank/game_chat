@@ -3,17 +3,23 @@ import 'package:flutter/material.dart';
 class BracketToolbar extends StatefulWidget {
   final String title;
   final Function(String) onTitleChanged;
-  final VoidCallback onAddHeat;
-  final VoidCallback onSave;
-  final VoidCallback onLoad;
+  final VoidCallback? onAddHeat;
+  final VoidCallback? onSave;
+  final VoidCallback? onEdit;
+  final VoidCallback? onBack;
+  final VoidCallback? onDelete;
+  final bool isEditMode;
 
   const BracketToolbar({
     super.key,
     required this.title,
     required this.onTitleChanged,
-    required this.onAddHeat,
-    required this.onSave,
-    required this.onLoad,
+    this.onAddHeat,
+    this.onSave,
+    this.onEdit,
+    this.onBack,
+    this.onDelete,
+    this.isEditMode = false,
   });
 
   @override
@@ -86,7 +92,7 @@ class _BracketToolbarState extends State<BracketToolbar> {
 
           // Tournament Title
           Expanded(
-            child: _isEditingTitle
+            child: _isEditingTitle && widget.isEditMode
                 ? TextField(
                     controller: _titleController,
                     autofocus: true,
@@ -123,11 +129,13 @@ class _BracketToolbarState extends State<BracketToolbar> {
                     },
                   )
                 : GestureDetector(
-                    onDoubleTap: () {
-                      setState(() {
-                        _isEditingTitle = true;
-                      });
-                    },
+                    onDoubleTap: widget.isEditMode
+                        ? () {
+                            setState(() {
+                              _isEditingTitle = true;
+                            });
+                          }
+                        : null,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -139,12 +147,14 @@ class _BracketToolbarState extends State<BracketToolbar> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.edit,
-                          size: 16,
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
+                        if (widget.isEditMode) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.edit,
+                            size: 16,
+                            color: Colors.white.withValues(alpha: 0.5),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -153,24 +163,46 @@ class _BracketToolbarState extends State<BracketToolbar> {
           const SizedBox(width: 16),
 
           // Action buttons
-          _ToolbarButton(
-            icon: Icons.add_box_outlined,
-            label: 'Add Heat',
-            onTap: widget.onAddHeat,
-            isPrimary: true,
-          ),
-          const SizedBox(width: 12),
-          _ToolbarButton(
-            icon: Icons.save_outlined,
-            label: 'Save',
-            onTap: widget.onSave,
-          ),
-          const SizedBox(width: 12),
-          _ToolbarButton(
-            icon: Icons.folder_open_outlined,
-            label: 'Load',
-            onTap: widget.onLoad,
-          ),
+          if (widget.onBack != null) ...[
+            _ToolbarButton(
+              icon: Icons.arrow_back,
+              label: 'Back',
+              onTap: widget.onBack!,
+            ),
+            const SizedBox(width: 12),
+          ],
+          if (widget.isEditMode) ...[
+            // Edit mode buttons
+            _ToolbarButton(
+              icon: Icons.add_box_outlined,
+              label: 'Add Heat',
+              onTap: widget.onAddHeat ?? () {},
+              isPrimary: true,
+            ),
+            const SizedBox(width: 12),
+            _ToolbarButton(
+              icon: Icons.save_outlined,
+              label: 'Save',
+              onTap: widget.onSave ?? () {},
+            ),
+            if (widget.onDelete != null) ...[
+              const SizedBox(width: 12),
+              _ToolbarButton(
+                icon: Icons.delete_outline,
+                label: 'Delete',
+                onTap: widget.onDelete!,
+                isDelete: true,
+              ),
+            ],
+          ] else if (widget.onEdit != null) ...[
+            // View mode - show Edit button
+            _ToolbarButton(
+              icon: Icons.edit_outlined,
+              label: 'Edit',
+              onTap: widget.onEdit!,
+              isPrimary: true,
+            ),
+          ],
         ],
       ),
     );
@@ -182,12 +214,14 @@ class _ToolbarButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool isPrimary;
+  final bool isDelete;
 
   const _ToolbarButton({
     required this.icon,
     required this.label,
     required this.onTap,
     this.isPrimary = false,
+    this.isDelete = false,
   });
 
   @override
@@ -203,11 +237,15 @@ class _ToolbarButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             color: isPrimary
                 ? const Color(0xFF00bcd4).withValues(alpha: 0.2)
-                : const Color(0xFF2a2a3a),
+                : isDelete
+                    ? const Color(0xFFff6b35).withValues(alpha: 0.2)
+                    : const Color(0xFF2a2a3a),
             border: Border.all(
               color: isPrimary
                   ? const Color(0xFF00bcd4)
-                  : const Color(0xFF3a3a4a),
+                  : isDelete
+                      ? const Color(0xFFff6b35)
+                      : const Color(0xFF3a3a4a),
               width: 1,
             ),
           ),
@@ -217,13 +255,21 @@ class _ToolbarButton extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color: isPrimary ? const Color(0xFF00bcd4) : Colors.white70,
+                color: isPrimary
+                    ? const Color(0xFF00bcd4)
+                    : isDelete
+                        ? const Color(0xFFff6b35)
+                        : Colors.white70,
               ),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: TextStyle(
-                  color: isPrimary ? const Color(0xFF00bcd4) : Colors.white70,
+                  color: isPrimary
+                      ? const Color(0xFF00bcd4)
+                      : isDelete
+                          ? const Color(0xFFff6b35)
+                          : Colors.white70,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),

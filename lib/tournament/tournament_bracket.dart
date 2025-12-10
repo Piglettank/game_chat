@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/tournament.dart' hide Offset;
-import '../services/file_service.dart';
+import '../models/saved_tournament_bracket.dart';
+import '../services/tournament_bracket_service.dart';
 import 'bracket_canvas.dart';
 import 'toolbar.dart';
 
@@ -9,37 +11,19 @@ class TournamentBracket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Tournament Bracket Creator',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0d0d1a),
-        colorScheme: ColorScheme.dark(
-          primary: const Color(0xFF00bcd4),
-          secondary: const Color(0xFFff6b35),
-          surface: const Color(0xFF1a1a2e),
-        ),
-        textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF1a1a2e),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF3a3a4a)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF00bcd4), width: 2),
-          ),
-        ),
-      ),
-      home: const TournamentBracketHome(),
-    );
+    return TournamentBracketHome();
   }
 }
 
 class TournamentBracketHome extends StatefulWidget {
-  const TournamentBracketHome({super.key});
+  final String? bracketId;
+  final Tournament? initialTournament;
+
+  const TournamentBracketHome({
+    super.key,
+    this.bracketId,
+    this.initialTournament,
+  });
 
   @override
   State<TournamentBracketHome> createState() => _TournamentBracketHomeState();
@@ -47,50 +31,99 @@ class TournamentBracketHome extends StatefulWidget {
 
 class _TournamentBracketHomeState extends State<TournamentBracketHome> {
   late Tournament _tournament;
+  final TournamentBracketService _service = TournamentBracketService();
+  bool _isLoading = false;
+  String? _currentBracketId;
+  bool _isEditMode = false;
+  StreamSubscription<SavedTournamentBracket?>? _bracketSubscription;
 
   @override
   void initState() {
     super.initState();
-    _tournament = Tournament(title: 'New Tournament');
-    // Add some initial heats for demo
-    _addInitialHeats();
+    if (widget.initialTournament != null) {
+      _tournament = widget.initialTournament!;
+      _currentBracketId = widget.bracketId;
+      // Start in view mode if loading existing bracket
+      _isEditMode = false;
+      if (widget.bracketId != null) {
+        _startStreamingBracket(widget.bracketId!);
+      }
+    } else if (widget.bracketId != null) {
+      _loadBracket(widget.bracketId!);
+    } else {
+      _tournament = Tournament(title: 'New Tournament');
+      // New brackets start in edit mode
+      _isEditMode = true;
+    }
   }
 
-  void _addInitialHeats() {
-    final heat1 = Heat(
-      title: 'Heat 1',
-      x: 100,
-      y: 100,
-      players: [
-        Player(name: 'Player 1'),
-        Player(name: 'Player 2'),
-      ],
-    );
-    final heat2 = Heat(
-      title: 'Heat 2',
-      x: 100,
-      y: 350,
-      players: [
-        Player(name: 'Player 3'),
-        Player(name: 'Player 4'),
-      ],
-    );
-    final semifinal = Heat(title: 'Semi-Final', x: 400, y: 200);
-    final finalHeat = Heat(title: 'Final', x: 700, y: 200, isFinal: true);
+  @override
+  void dispose() {
+    _bracketSubscription?.cancel();
+    super.dispose();
+  }
 
-    _tournament.heats.addAll([heat1, heat2, semifinal, finalHeat]);
-
-    // Add connections
-    _tournament.addConnection(
-      Connection(fromHeatId: heat1.id, toHeatId: semifinal.id),
-    );
-    _tournament.addConnection(
-      Connection(fromHeatId: heat2.id, toHeatId: semifinal.id),
-    );
-    _tournament.addConnection(
-      Connection(fromHeatId: semifinal.id, toHeatId: finalHeat.id),
+  void _startStreamingBracket(String bracketId) {
+    _bracketSubscription?.cancel();
+    _bracketSubscription = _service.streamBracket(bracketId).listen(
+      (bracket) {
+        if (bracket != null && mounted && !_isEditMode) {
+          // Only update if not in edit mode (to avoid conflicts)
+          setState(() {
+            _tournament = bracket.tournament;
+          });
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          debugPrint('Error streaming bracket: $error');
+        }
+      },
     );
   }
+
+  Future<void> _loadBracket(String bracketId) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final bracket = await _service.getBracket(bracketId);
+      if (bracket != null && mounted) {
+        setState(() {
+          _tournament = bracket.tournament;
+          _currentBracketId = bracketId;
+          _isLoading = false;
+          _isEditMode = false; // Start in view mode
+        });
+        _startStreamingBracket(bracketId);
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bracket not found'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load bracket: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
 
   void _onTournamentChanged() {
     setState(() {});
@@ -122,36 +155,56 @@ class _TournamentBracketHomeState extends State<TournamentBracketHome> {
   }
 
   Future<void> _saveTournament() async {
-    final success = await FileService.saveTournament(_tournament);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Tournament saved successfully!'
-                : 'Failed to save tournament',
-          ),
-          backgroundColor: success
-              ? const Color(0xFF4caf50)
-              : const Color(0xFFf44336),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
-    }
-  }
-
-  Future<void> _loadTournament() async {
-    final loaded = await FileService.loadTournament();
-    if (loaded != null) {
-      setState(() {
-        _tournament = loaded;
-      });
+    try {
+      if (_currentBracketId != null) {
+        // Update existing bracket
+        await _service.updateBracket(
+          bracketId: _currentBracketId!,
+          tournament: _tournament,
+        );
+        // Exit edit mode after saving
+        setState(() {
+          _isEditMode = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Bracket updated successfully!'),
+              backgroundColor: const Color(0xFF4caf50),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      } else {
+        // Create new bracket
+        final bracketId = await _service.saveBracket(tournament: _tournament);
+        setState(() {
+          _currentBracketId = bracketId;
+          _isEditMode = false; // Exit edit mode after saving
+        });
+        _startStreamingBracket(bracketId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Bracket saved successfully!'),
+              backgroundColor: const Color(0xFF4caf50),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Tournament loaded successfully!'),
-            backgroundColor: const Color(0xFF4caf50),
+            content: Text('Failed to save bracket: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -162,51 +215,106 @@ class _TournamentBracketHomeState extends State<TournamentBracketHome> {
     }
   }
 
+  void _enterEditMode() {
+    setState(() {
+      _isEditMode = true;
+    });
+    // Stop streaming when entering edit mode
+    _bracketSubscription?.cancel();
+  }
+
+  Future<void> _deleteBracket() async {
+    if (_currentBracketId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Bracket'),
+        content: Text('Are you sure you want to delete "${_tournament.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _service.deleteBracket(_currentBracketId!);
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete bracket: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _goBack() {
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0d0d1a),
-        colorScheme: ColorScheme.dark(
-          primary: const Color(0xFF00bcd4),
-          secondary: const Color(0xFFff6b35),
-          surface: const Color(0xFF1a1a2e),
-        ),
-        textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF1a1a2e),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF3a3a4a)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF00bcd4), width: 2),
-          ),
-        ),
-      ),
-      child: Scaffold(
-        body: Column(
-          children: [
-            // Toolbar
-            BracketToolbar(
-              title: _tournament.title,
-              onTitleChanged: _onTitleChanged,
-              onAddHeat: _addHeat,
-              onSave: _saveTournament,
-              onLoad: _loadTournament,
-            ),
-            // Canvas
-            Expanded(
-              child: BracketCanvas(
-                tournament: _tournament,
-                onTournamentChanged: _onTournamentChanged,
-                onDeleteHeat: _deleteHeat,
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                'Loading bracket...',
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+      );
+    }
+
+    return Scaffold(
+      body: Column(
+        children: [
+          // Toolbar
+          BracketToolbar(
+            title: _tournament.title,
+            onTitleChanged: _onTitleChanged,
+            onAddHeat: _isEditMode ? _addHeat : null,
+            onSave: _isEditMode ? _saveTournament : null,
+            onEdit: !_isEditMode && _currentBracketId != null ? _enterEditMode : null,
+            onBack: _goBack,
+            onDelete: _isEditMode && _currentBracketId != null ? _deleteBracket : null,
+            isEditMode: _isEditMode,
+          ),
+          // Canvas
+          Expanded(
+            child: BracketCanvas(
+              tournament: _tournament,
+              onTournamentChanged: _onTournamentChanged,
+              onDeleteHeat: _deleteHeat,
+              isReadOnly: !_isEditMode,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,4 @@
-# game_chat
+# Game Night
 
 An embeddable Flutter chat widget that can be integrated into any website.
 

@@ -66,7 +66,7 @@ class EmbedConfig {
     final params = uri.queryParameters;
 
     return EmbedConfig(
-      chatId: params['chatId'] ?? 'main-chat',
+      chatId: params['chatId'] ?? 'tournament-chat',
       userId: params['userId'] ?? _generateRandomUserId(),
       userName: params['userName'] ?? _getRandomUserName(),
       width: params['width'] != null ? double.tryParse(params['width']!) : null,
@@ -93,7 +93,7 @@ class EmbedConfig {
     }
 
     return EmbedConfig(
-      chatId: json['chatId'] as String? ?? 'main-chat',
+      chatId: json['chatId'] as String? ?? 'tournament-chat',
       userId: json['userId'] as String? ?? _generateRandomUserId(),
       userName: json['userName'] as String? ?? _getRandomUserName(),
       firebaseOptions: firebaseOptions,

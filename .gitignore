@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase (Android/iOS config files - web config is in firebase_options.dart)
+**/google-services.json
+**/GoogleService-Info.plist

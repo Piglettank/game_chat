@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Chat Widget - Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Verdana, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+    }
+    .content {
+      flex: 1;
+      padding: 20px;
+      padding-right: 520px; /* 500px chat width + 20px spacing */
+      overflow-y: auto;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .chat-container {
+      width: 500px;
+      height: 100vh;
+      border-left: 2px solid #ddd;
+      overflow: hidden;
+      position: fixed;
+      right: 0;
+      top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <h1>Game Chat Widget Example</h1>
+    <p>This is the main content area. The chat widget is positioned on the right side of the screen.</p>
+  </div>
+  
+  <div id="game-chat-widget" class="chat-container"></div>
+
+  <!-- Load the embed script -->
+  <script src="embed.js"></script>
+  
+  <!-- Initialize the widget -->
+  <script>
+    // Initialize with your configuration
+    GameChat.init({
+      containerId: 'game-chat-widget',
+      widgetUrl: window.location.origin, // Change this to your deployed URL
+      chatId: 'example-chat-room',
+      userId: 'user-' + Math.random().toString(36).substr(2, 9),
+      userName: 'Player ' + Math.floor(Math.random() * 1000),
+      width: '500px',
+      height: '100vh'
+      // Optional: Add your Firebase config here if using custom Firebase
+      // firebase: {
+      //   apiKey: 'your-api-key',
+      //   authDomain: 'your-project.firebaseapp.com',
+      //   projectId: 'your-project-id',
+      //   storageBucket: 'your-project.appspot.com',
+      //   messagingSenderId: '123456789',
+      //   appId: '1:123456789:web:abc123',
+      //   measurementId: 'G-XXXXXXXXXX'
+      // }
+    });
+  </script>
+</body>
+</html>

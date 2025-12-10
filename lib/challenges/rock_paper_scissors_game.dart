@@ -76,23 +76,12 @@ class RockPaperScissorsGame extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildChoiceButton(
-                  context,
-                  RockPaperScissorsChoice.rock,
-                  '✊',
-                  false,
-                ),
-                _buildChoiceButton(
-                  context,
-                  RockPaperScissorsChoice.paper,
-                  '✋',
-                  false,
-                ),
+                _buildChoiceButton(context, RockPaperScissorsChoice.rock, '✊'),
+                _buildChoiceButton(context, RockPaperScissorsChoice.paper, '✋'),
                 _buildChoiceButton(
                   context,
                   RockPaperScissorsChoice.scissors,
                   '✌️',
-                  false,
                 ),
               ],
             ),
@@ -105,12 +94,11 @@ class RockPaperScissorsGame extends StatelessWidget {
   Widget _buildChoiceButton(
     BuildContext context,
     RockPaperScissorsChoice choice,
-    String emoji,
-    bool wasChosen, [
+    String emoji, [
     bool isMyChoice = false,
   ]) {
     final isCompleted = challenge.isCompleted && challenge.result != null;
-    
+
     return InkWell(
       onTap: isCompleted ? null : () => onChoiceSelected(choice),
       borderRadius: BorderRadius.circular(8),
@@ -125,17 +113,16 @@ class RockPaperScissorsGame extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(8),
           color: isMyChoice
-              ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
+              ? Theme.of(
+                  context,
+                ).colorScheme.primaryContainer.withValues(alpha: 0.3)
               : Colors.transparent,
         ),
         child: Opacity(
-          opacity: isCompleted && !wasChosen ? 0.3 : 1.0,
+          opacity: isCompleted ? 0.3 : 1.0,
           child: Column(
             children: [
-              Text(
-                emoji,
-                style: const TextStyle(fontSize: 32),
-              ),
+              Text(emoji, style: const TextStyle(fontSize: 32)),
               const SizedBox(height: 4),
               Text(
                 choice.name.toUpperCase(),
@@ -177,7 +164,6 @@ class RockPaperScissorsGame extends StatelessWidget {
     final result = challenge.result!;
     final isWinner = result['winnerId'] == currentUserId;
     final isTie = result['isTie'] as bool? ?? false;
-    final reason = result['reason'] as String? ?? '';
 
     return Card(
       margin: const EdgeInsets.all(8.0),
@@ -193,55 +179,23 @@ class RockPaperScissorsGame extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
                 color: isTie
-                    ? Theme.of(context).colorScheme.surfaceVariant
+                    ? Theme.of(context).colorScheme.surfaceContainerHighest
                     : isWinner
-                        ? Theme.of(context).colorScheme.primaryContainer
-                        : Theme.of(context).colorScheme.errorContainer,
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : Theme.of(context).colorScheme.errorContainer,
                 borderRadius: BorderRadius.circular(8.0),
               ),
               child: Text(
                 isTie
                     ? 'Tie!'
                     : isWinner
-                        ? 'You Win!'
-                        : 'You Lose!',
+                    ? 'You Win!'
+                    : 'You Lose!',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Choose your move:',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildChoiceButton(
-                  context,
-                  RockPaperScissorsChoice.rock,
-                  '✊',
-                  challenge.challengerChoice == 'rock' || challenge.challengeeChoice == 'rock',
-                  myChoice == 'rock',
-                ),
-                _buildChoiceButton(
-                  context,
-                  RockPaperScissorsChoice.paper,
-                  '✋',
-                  challenge.challengerChoice == 'paper' || challenge.challengeeChoice == 'paper',
-                  myChoice == 'paper',
-                ),
-                _buildChoiceButton(
-                  context,
-                  RockPaperScissorsChoice.scissors,
-                  '✌️',
-                  challenge.challengerChoice == 'scissors' || challenge.challengeeChoice == 'scissors',
-                  myChoice == 'scissors',
-                ),
-              ],
             ),
             const SizedBox(height: 16),
             Row(
@@ -250,11 +204,11 @@ class RockPaperScissorsGame extends StatelessWidget {
                 Column(
                   children: [
                     Text(
-                      _getChoiceEmoji(challenge.challengerChoice),
+                      _getChoiceEmoji(myChoice),
                       style: const TextStyle(fontSize: 32),
                     ),
                     Text(
-                      challenge.challengerName,
+                      '${isChallenger ? challenge.challengerName : challenge.challengeeName} (me)',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -263,22 +217,16 @@ class RockPaperScissorsGame extends StatelessWidget {
                 Column(
                   children: [
                     Text(
-                      _getChoiceEmoji(challenge.challengeeChoice),
+                      _getChoiceEmoji(opponentChoice),
                       style: const TextStyle(fontSize: 32),
                     ),
                     Text(
-                      challenge.challengeeName,
+                      opponentName,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              reason,
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
             ),
           ],
         ),

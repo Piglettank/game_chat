@@ -12,11 +12,37 @@ class ActiveUser {
   });
 
   factory ActiveUser.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>?;
+    if (data == null) {
+      throw Exception('Document data is null');
+    }
+    
+    DateTime lastSeenDate = DateTime.now();
+    try {
+      final lastSeenValue = data['lastSeen'];
+      if (lastSeenValue != null) {
+        if (lastSeenValue is Timestamp) {
+          lastSeenDate = lastSeenValue.toDate();
+        } else if (lastSeenValue is Map) {
+          // Handle case where timestamp might be returned as a Map
+          final seconds = lastSeenValue['seconds'] as int?;
+          final nanoseconds = lastSeenValue['nanoseconds'] as int?;
+          if (seconds != null) {
+            lastSeenDate = DateTime.fromMillisecondsSinceEpoch(
+              seconds * 1000 + (nanoseconds ?? 0) ~/ 1000000,
+            );
+          }
+        }
+      }
+    } catch (_) {
+      // If anything goes wrong, use current time as fallback
+      lastSeenDate = DateTime.now();
+    }
+    
     return ActiveUser(
       userId: doc.id,
       userName: data['userName'] as String? ?? 'Anonymous',
-      lastSeen: (data['lastSeen'] as Timestamp).toDate(),
+      lastSeen: lastSeenDate,
     );
   }
 

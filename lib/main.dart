@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -35,9 +33,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Game Chat',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigoAccent),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
-        fontFamily: 'Verdana',
+        fontFamily: 'Inter',
       ),
       home: Scaffold(
         body: ChatScreen(

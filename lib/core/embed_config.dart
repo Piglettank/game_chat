@@ -43,7 +43,7 @@ class EmbedConfig {
     final random = Random();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final randomNum = random.nextInt(10000);
-    return 'user-${timestamp}-$randomNum';
+    return 'user-$timestamp-$randomNum';
   }
 
   static String _getRandomUserName() {

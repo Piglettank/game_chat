@@ -42,10 +42,6 @@ class ChatService {
     });
   }
 
-  Future<void> deleteMessage(String messageId) async {
-    await _messagesRef.doc(messageId).delete();
-  }
-
   /// Add or update user in active users list
   Future<void> joinChat({
     required String userId,
@@ -232,34 +228,14 @@ class ChatService {
         .map((doc) => doc.exists ? Challenge.fromFirestore(doc) : null);
   }
 
-  /// Stream of completed challenges for a user
-  Stream<List<Challenge>> getCompletedChallenges(String userId) {
-    return _challengesRef
-        .where('status', isEqualTo: ChallengeStatus.completed.name)
-        .snapshots()
-        .map((snapshot) {
-          final challenges = snapshot.docs
-              .map((doc) => Challenge.fromFirestore(doc))
-              .where(
-                (challenge) =>
-                    challenge.challengerId == userId ||
-                    challenge.challengeeId == userId,
-              )
-              .toList();
-          // Sort by createdAt descending (most recent first)
-          challenges.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return challenges;
-        });
-  }
-
   String _getChoiceDisplayName(String choice) {
     switch (choice) {
       case 'rock':
-        return '✊ rock';
+        return '? rock';
       case 'paper':
-        return '✋ paper';
+        return '? paper';
       case 'scissors':
-        return '✌️ scissors';
+        return '?? scissors';
       default:
         return choice;
     }

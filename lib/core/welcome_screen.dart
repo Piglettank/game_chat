@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../chat/chat_screen.dart';
+import '../tournament/tournament_bracket.dart';
 
 class WelcomeScreen extends StatelessWidget {
   final String chatId;
@@ -58,10 +59,9 @@ class WelcomeScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // TODO: Navigate to tournament screen when implemented
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Tournament feature coming soon!'),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const TournamentBracketHome(),
                       ),
                     );
                   },

@@ -296,8 +296,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _startHeartbeat() {
-    // Update last seen every 30 seconds
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    // Update last seen every 5 minutes
+    _heartbeatTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       _chatService.updateLastSeen(widget.userId);
     });
   }

@@ -56,7 +56,7 @@ class ActiveUser {
   bool get isActive {
     final now = DateTime.now();
     final difference = now.difference(lastSeen);
-    // Consider user active if last seen within 2 minutes
-    return difference.inMinutes < 2;
+    // Consider user active if last seen within the last hour
+    return difference.inHours < 1;
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/challenge.dart';
+import 'challenge.dart';
 
 class ChallengeNotification extends StatelessWidget {
   final Challenge challenge;

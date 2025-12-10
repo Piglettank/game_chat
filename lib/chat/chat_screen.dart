@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/message.dart';
-import '../models/active_user.dart';
-import '../models/challenge.dart';
-import '../services/chat_service.dart';
-import '../widgets/challenge_dialog.dart';
-import '../widgets/challenge_notification.dart';
-import '../widgets/challenge_result_message.dart';
-import '../widgets/rock_paper_scissors_game.dart';
+import 'message.dart';
+import 'active_user.dart';
+import 'chat_service.dart';
+import '../challenges/challenge.dart';
+import '../challenges/challenge_dialog.dart';
+import '../challenges/challenge_notification.dart';
+import '../challenges/rock_paper_scissors_game.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -33,6 +32,12 @@ class _ChatScreenState extends State<ChatScreen> {
   Challenge? _activeChallenge;
   List<Challenge> _previousChallenges = [];
   bool _isUsersMenuOpen = true;
+  bool _shouldAutoScroll = true;
+  
+  // Local message list to prevent full rebuilds
+  List<Message> _messages = [];
+  StreamSubscription<List<Message>>? _messagesSubscription;
+  StreamSubscription<List<Challenge>>? _activeChallengesSubscription;
 
   @override
   void initState() {
@@ -41,38 +46,93 @@ class _ChatScreenState extends State<ChatScreen> {
     _joinChat();
     _startHeartbeat();
     _listenToActiveChallenges();
+    _listenToMessages();
+    
+    // Listen to scroll position to detect manual scrolling
+    _scrollController.addListener(() {
+      _shouldAutoScroll = _isNearBottom();
+    });
+  }
+  
+  void _listenToMessages() {
+    _messagesSubscription = _chatService.getMessages().listen((newMessages) {
+      if (!mounted) return;
+      
+      final previousCount = _messages.length;
+      final hasNewMessages = newMessages.length > previousCount;
+      final wasNearBottom = previousCount == 0 || _isNearBottom();
+      
+      // Check if messages actually changed (by comparing IDs)
+      final previousIds = _messages.map((m) => m.id).toList();
+      final newIds = newMessages.map((m) => m.id).toList();
+      final messagesChanged = previousIds.length != newIds.length ||
+          !_listsEqual(previousIds, newIds);
+      
+      if (messagesChanged) {
+        setState(() {
+          _messages = newMessages;
+        });
+        
+        // Auto-scroll if we're near bottom and new messages arrived
+        if (hasNewMessages && (wasNearBottom || _shouldAutoScroll)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _scrollToBottom();
+            }
+          });
+        }
+      }
+    });
+  }
+  
+  bool _listsEqual(List<String> list1, List<String> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i] != list2[i]) return false;
+    }
+    return true;
   }
 
   @override
   void dispose() {
     _heartbeatTimer?.cancel();
+    _messagesSubscription?.cancel();
+    _activeChallengesSubscription?.cancel();
     _leaveChat();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool smooth = true}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        if (smooth) {
+          _scrollController.animateTo(
+            maxScroll,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        } else {
+          _scrollController.jumpTo(maxScroll);
+        }
       }
     });
   }
 
+  bool _isNearBottom() {
+    if (!_scrollController.hasClients) return true;
+    final position = _scrollController.position;
+    // Consider "near bottom" if within 100 pixels of the bottom
+    return position.pixels >= position.maxScrollExtent - 100;
+  }
+
   void _listenToActiveChallenges() {
-    _chatService.getActiveChallenges(widget.userId).listen((challenges) {
-      if (challenges.isNotEmpty) {
+    _activeChallengesSubscription = _chatService.getActiveChallenges(widget.userId).listen((challenges) {
+      if (mounted) {
         setState(() {
-          _activeChallenge = challenges.first;
-        });
-      } else {
-        setState(() {
-          _activeChallenge = null;
+          _activeChallenge = challenges.isNotEmpty ? challenges.first : null;
         });
       }
     });
@@ -101,11 +161,15 @@ class _ChatScreenState extends State<ChatScreen> {
     if (message.isEmpty) return;
 
     _messageController.clear();
+    // Auto-scroll when user sends a message
+    _shouldAutoScroll = true;
     await _chatService.sendMessage(
       message: message,
       userId: widget.userId,
       userName: widget.userName,
     );
+    // Scroll to bottom after sending
+    _scrollToBottom();
   }
 
   Future<void> _challengeUser(ActiveUser user) async {
@@ -166,186 +230,143 @@ class _ChatScreenState extends State<ChatScreen> {
                               onChoiceSelected: _makeChoice,
                             ),
                           Expanded(
-                            child: StreamBuilder<List<Message>>(
-                              stream: _chatService.getMessages(),
-                              builder: (context, messagesSnapshot) {
-                                return StreamBuilder<List<Challenge>>(
-                                  stream: _chatService.getPendingChallenges(widget.userId),
-                                  builder: (context, challengesSnapshot) {
-                                    return StreamBuilder<List<Challenge>>(
-                                      stream: _chatService.getCompletedChallenges(widget.userId),
-                                      builder: (context, completedChallengesSnapshot) {
-                                        if (messagesSnapshot.connectionState ==
-                                                ConnectionState.waiting ||
-                                            challengesSnapshot.connectionState ==
-                                                ConnectionState.waiting ||
-                                            completedChallengesSnapshot.connectionState ==
-                                                ConnectionState.waiting) {
-                                          return const Center(
-                                              child: CircularProgressIndicator());
-                                        }
+                            child: StreamBuilder<List<Challenge>>(
+                              stream: _chatService.getPendingChallenges(widget.userId),
+                              builder: (context, challengesSnapshot) {
+                                if (challengesSnapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                  return const Center(
+                                      child: CircularProgressIndicator());
+                                }
 
-                                        if (messagesSnapshot.hasError) {
-                                          return Center(
-                                              child: Text('Error: ${messagesSnapshot.error}'));
-                                        }
+                                if (challengesSnapshot.hasError) {
+                                  debugPrint(
+                                      'Error loading pending challenges: ${challengesSnapshot.error}');
+                                }
 
-                                        if (challengesSnapshot.hasError) {
-                                          debugPrint(
-                                              'Error loading pending challenges: ${challengesSnapshot.error}');
-                                        }
+                                final challenges = challengesSnapshot.data ?? [];
 
-                                        if (completedChallengesSnapshot.hasError) {
-                                          debugPrint(
-                                              'Error loading completed challenges: ${completedChallengesSnapshot.error}');
-                                        }
+                                // Scroll to bottom when new challenges appear
+                                final hasNewChallenges = challenges.isNotEmpty &&
+                                    (challenges.length != _previousChallenges.length ||
+                                        (_previousChallenges.isEmpty &&
+                                            challenges.isNotEmpty));
+                                if (hasNewChallenges) {
+                                  _previousChallenges = List.from(challenges);
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    _scrollToBottom();
+                                  });
+                                } else if (challenges.length !=
+                                    _previousChallenges.length) {
+                                  _previousChallenges = List.from(challenges);
+                                }
 
-                                        final messages = messagesSnapshot.data ?? [];
-                                        final challenges = challengesSnapshot.data ?? [];
-                                        final completedChallenges =
-                                            completedChallengesSnapshot.data ?? [];
+                                if (_messages.isEmpty && challenges.isEmpty) {
+                                  return const Center(
+                                    child: Text(
+                                      'No messages yet. Start the conversation!',
+                                    ),
+                                  );
+                                }
 
-                                        // Scroll to bottom when new challenges appear or when ListView first builds
-                                        final hasNewChallenges = challenges.isNotEmpty &&
-                                            (challenges.length != _previousChallenges.length ||
-                                                (_previousChallenges.isEmpty &&
-                                                    challenges.isNotEmpty));
-                                        if (hasNewChallenges) {
-                                          _previousChallenges = List.from(challenges);
-                                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                                            _scrollToBottom();
-                                          });
-                                        } else if (challenges.length !=
-                                            _previousChallenges.length) {
-                                          _previousChallenges = List.from(challenges);
-                                        }
-
-                                        if (messages.isEmpty &&
-                                            challenges.isEmpty &&
-                                            completedChallenges.isEmpty) {
-                                          return const Center(
-                                            child: Text(
-                                              'No messages yet. Start the conversation!',
-                                            ),
+                                return ListView.builder(
+                                  controller: _scrollController,
+                                  padding: const EdgeInsets.all(8.0),
+                                  itemCount: _messages.length + challenges.length,
+                                  reverse: false,
+                                      itemBuilder: (context, index) {
+                                        // Show pending challenges at the bottom (end of list)
+                                        if (index >= _messages.length) {
+                                          final challengeIndex = index - _messages.length;
+                                          final challenge = challenges[challengeIndex];
+                                          return ChallengeNotification(
+                                            key: ValueKey('challenge_${challenge.id}'),
+                                            challenge: challenge,
+                                            onAccept: () =>
+                                                _acceptChallenge(challenge),
+                                            onReject: () =>
+                                                _rejectChallenge(challenge),
                                           );
                                         }
 
-                                        return ListView.builder(
-                                          controller: _scrollController,
-                                          padding: const EdgeInsets.all(8.0),
-                                          itemCount: messages.length +
-                                              completedChallenges.length +
-                                              challenges.length,
-                                          itemBuilder: (context, index) {
-                                            // Show pending challenges at the bottom (end of list)
-                                            if (index >=
-                                                messages.length +
-                                                    completedChallenges.length) {
-                                              final challengeIndex = index -
-                                                  messages.length -
-                                                  completedChallenges.length;
-                                              final challenge = challenges[challengeIndex];
-                                              return ChallengeNotification(
-                                                challenge: challenge,
-                                                onAccept: () =>
-                                                    _acceptChallenge(challenge),
-                                                onReject: () =>
-                                                    _rejectChallenge(challenge),
-                                              );
-                                            }
+                                        // Show messages
+                                        final message = _messages[index];
+                                        final isOwnMessage = message.userId == widget.userId;
 
-                                            // Show completed challenges after messages
-                                            if (index >= messages.length) {
-                                              final completedIndex =
-                                                  index - messages.length;
-                                              final challenge =
-                                                  completedChallenges[completedIndex];
-                                              return ChallengeResultMessage(
-                                                challenge: challenge,
-                                              );
-                                            }
-
-                                            // Show messages
-                                            final message = messages[index];
-                                            final isOwnMessage = message.userId == widget.userId;
-
-                                            return Align(
-                                              alignment: isOwnMessage
-                                                  ? Alignment.centerRight
-                                                  : Alignment.centerLeft,
-                                              child: Container(
-                                                margin: const EdgeInsets.symmetric(
-                                                  vertical: 4.0,
-                                                  horizontal: 8.0,
-                                                ),
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 16.0,
-                                                  vertical: 10.0,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: isOwnMessage
-                                                      ? Theme.of(context).colorScheme.primary
-                                                      : Theme.of(
-                                                          context,
-                                                        ).colorScheme.surfaceContainerHighest,
-                                                  borderRadius: BorderRadius.circular(16.0),
-                                                ),
-                                                constraints: BoxConstraints(
-                                                  minWidth: 120,
-                                                  maxWidth: MediaQuery.of(context).size.width *
-                                                      0.7,
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    if (!isOwnMessage)
-                                                      Text(
-                                                        message.userName,
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: isOwnMessage
-                                                              ? Colors.white
-                                                              : Theme.of(
-                                                                  context,
-                                                                ).colorScheme.onSurfaceVariant,
-                                                        ),
-                                                      ),
-                                                    const SizedBox(height: 4),
-                                                    Text(
-                                                      message.message,
-                                                      style: TextStyle(
-                                                        color: isOwnMessage
-                                                            ? Colors.white
-                                                            : Theme.of(
-                                                                context,
-                                                              ).colorScheme.onSurfaceVariant,
-                                                      ),
+                                        return Align(
+                                          key: ValueKey('message_${message.id}'),
+                                          alignment: isOwnMessage
+                                              ? Alignment.centerRight
+                                              : Alignment.centerLeft,
+                                          child: Container(
+                                            margin: const EdgeInsets.symmetric(
+                                              vertical: 4.0,
+                                              horizontal: 8.0,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16.0,
+                                              vertical: 10.0,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isOwnMessage
+                                                  ? Theme.of(context).colorScheme.primary
+                                                  : Theme.of(
+                                                      context,
+                                                    ).colorScheme.surfaceContainerHighest,
+                                              borderRadius: BorderRadius.circular(16.0),
+                                            ),
+                                            constraints: BoxConstraints(
+                                              minWidth: 120,
+                                              maxWidth: MediaQuery.of(context).size.width *
+                                                  0.7,
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                if (!isOwnMessage)
+                                                  Text(
+                                                    message.userName,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: isOwnMessage
+                                                          ? Colors.white
+                                                          : Theme.of(
+                                                              context,
+                                                            ).colorScheme.onSurfaceVariant,
                                                     ),
-                                                    const SizedBox(height: 4),
-                                                    Text(
-                                                      _formatTimestamp(message.sent),
-                                                      style: TextStyle(
-                                                        fontSize: 10,
-                                                        color: isOwnMessage
-                                                            ? Colors.white70
-                                                            : Theme.of(context)
-                                                                .colorScheme
-                                                                .onSurfaceVariant
-                                                                .withValues(alpha: 0.7),
-                                                      ),
-                                                    ),
-                                                  ],
+                                                  ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  message.message,
+                                                  style: TextStyle(
+                                                    color: isOwnMessage
+                                                        ? Colors.white
+                                                        : Theme.of(
+                                                            context,
+                                                          ).colorScheme.onSurfaceVariant,
+                                                  ),
                                                 ),
-                                              ),
-                                            );
-                                          },
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  _formatTimestamp(message.sent),
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: isOwnMessage
+                                                        ? Colors.white70
+                                                        : Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurfaceVariant
+                                                            .withValues(alpha: 0.7),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         );
                                       },
                                     );
-                                  },
-                                );
                               },
                             ),
                           ),

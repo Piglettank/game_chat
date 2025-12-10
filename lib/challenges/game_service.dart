@@ -1,4 +1,4 @@
-import '../models/challenge.dart';
+import 'challenge.dart';
 
 class GameService {
   /// Calculate result for Rock Paper Scissors game

@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'screens/chat_screen.dart';
-import 'models/embed_config.dart';
+import 'chat/chat_screen.dart';
+import 'core/embed_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

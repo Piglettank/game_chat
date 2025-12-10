@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/challenge.dart';
+import 'challenge.dart';
 
 class RockPaperScissorsGame extends StatelessWidget {
   final Challenge challenge;
@@ -80,16 +80,19 @@ class RockPaperScissorsGame extends StatelessWidget {
                   context,
                   RockPaperScissorsChoice.rock,
                   '✊',
+                  false,
                 ),
                 _buildChoiceButton(
                   context,
                   RockPaperScissorsChoice.paper,
                   '✋',
+                  false,
                 ),
                 _buildChoiceButton(
                   context,
                   RockPaperScissorsChoice.scissors,
                   '✌️',
+                  false,
                 ),
               ],
             ),
@@ -103,28 +106,43 @@ class RockPaperScissorsGame extends StatelessWidget {
     BuildContext context,
     RockPaperScissorsChoice choice,
     String emoji,
-  ) {
+    bool wasChosen, [
+    bool isMyChoice = false,
+  ]) {
+    final isCompleted = challenge.isCompleted && challenge.result != null;
+    
     return InkWell(
-      onTap: () => onChoiceSelected(choice),
+      onTap: isCompleted ? null : () => onChoiceSelected(choice),
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: Theme.of(context).dividerColor),
+          border: Border.all(
+            color: isMyChoice
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).dividerColor,
+            width: isMyChoice ? 2 : 1,
+          ),
           borderRadius: BorderRadius.circular(8),
+          color: isMyChoice
+              ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
+              : Colors.transparent,
         ),
-        child: Column(
-          children: [
-            Text(
-              emoji,
-              style: const TextStyle(fontSize: 32),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              choice.name.toUpperCase(),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+        child: Opacity(
+          opacity: isCompleted && !wasChosen ? 0.3 : 1.0,
+          child: Column(
+            children: [
+              Text(
+                emoji,
+                style: const TextStyle(fontSize: 32),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                choice.name.toUpperCase(),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -163,27 +181,69 @@ class RockPaperScissorsGame extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.all(8.0),
-      color: isTie
-          ? Theme.of(context).colorScheme.surfaceVariant
-          : isWinner
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.errorContainer,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              isTie
-                  ? 'It\'s a Tie!'
-                  : isWinner
-                      ? 'You Win! 🎉'
-                      : 'You Lost 😢',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+            // Result message prominently displayed
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: isTie
+                    ? Theme.of(context).colorScheme.surfaceVariant
+                    : isWinner
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Theme.of(context).colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Text(
+                isTie
+                    ? 'Tie!'
+                    : isWinner
+                        ? 'You Win!'
+                        : 'You Lose!',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
+            Text(
+              'Choose your move:',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildChoiceButton(
+                  context,
+                  RockPaperScissorsChoice.rock,
+                  '✊',
+                  challenge.challengerChoice == 'rock' || challenge.challengeeChoice == 'rock',
+                  myChoice == 'rock',
+                ),
+                _buildChoiceButton(
+                  context,
+                  RockPaperScissorsChoice.paper,
+                  '✋',
+                  challenge.challengerChoice == 'paper' || challenge.challengeeChoice == 'paper',
+                  myChoice == 'paper',
+                ),
+                _buildChoiceButton(
+                  context,
+                  RockPaperScissorsChoice.scissors,
+                  '✌️',
+                  challenge.challengerChoice == 'scissors' || challenge.challengeeChoice == 'scissors',
+                  myChoice == 'scissors',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -191,9 +251,12 @@ class RockPaperScissorsGame extends StatelessWidget {
                   children: [
                     Text(
                       _getChoiceEmoji(challenge.challengerChoice),
-                      style: const TextStyle(fontSize: 48),
+                      style: const TextStyle(fontSize: 32),
                     ),
-                    Text(challenge.challengerName),
+                    Text(
+                      challenge.challengerName,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
                 const Text('VS'),
@@ -201,9 +264,12 @@ class RockPaperScissorsGame extends StatelessWidget {
                   children: [
                     Text(
                       _getChoiceEmoji(challenge.challengeeChoice),
-                      style: const TextStyle(fontSize: 48),
+                      style: const TextStyle(fontSize: 32),
                     ),
-                    Text(challenge.challengeeName),
+                    Text(
+                      challenge.challengeeName,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ],
@@ -212,6 +278,7 @@ class RockPaperScissorsGame extends StatelessWidget {
             Text(
               reason,
               style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
             ),
           ],
         ),

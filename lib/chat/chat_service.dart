@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/message.dart';
-import '../models/active_user.dart';
-import '../models/challenge.dart';
-import 'game_service.dart';
+import 'message.dart';
+import 'active_user.dart';
+import '../challenges/challenge.dart';
+import '../challenges/game_service.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -137,9 +137,7 @@ class ChatService {
     final isChallenger = challenge.challengerId == userId;
     final choiceField = isChallenger ? 'challenger' : 'challengee';
 
-    final updateData = <String, dynamic>{
-      'choices.$choiceField': choice,
-    };
+    final updateData = <String, dynamic>{'choices.$choiceField': choice};
 
     // Check if both choices are made after this update
     final newChoices = Map<String, String?>.from(challenge.choices);
@@ -160,12 +158,31 @@ class ChatService {
 
       updateData['result'] = result;
       updateData['status'] = ChallengeStatus.completed.name;
+
+      await _challengesRef.doc(challengeId).update(updateData);
+
+      // Only challenger sends the result message to chat
+      if (isChallenger) {
+        final resultMessage = _formatChallengeResultMessage(
+          challengerName: challenge.challengerName,
+          challengeeName: challenge.challengeeName,
+          challengerChoice: newChoices['challenger']!,
+          challengeeChoice: newChoices['challengee']!,
+          challengerId: challenge.challengerId,
+          result: result,
+        );
+
+        await sendMessage(
+          message: resultMessage,
+          userId: 'system',
+          userName: 'Challenge Announcer',
+        );
+      }
     } else {
       // Still waiting for other player
       updateData['status'] = ChallengeStatus.accepted.name;
+      await _challengesRef.doc(challengeId).update(updateData);
     }
-
-    await _challengesRef.doc(challengeId).update(updateData);
   }
 
   /// Stream of pending challenges for a user
@@ -174,16 +191,14 @@ class ChatService {
         .where('challengeeId', isEqualTo: userId)
         .where('status', isEqualTo: ChallengeStatus.pending.name)
         .snapshots()
-        .map(
-          (snapshot) {
-            final challenges = snapshot.docs
-                .map((doc) => Challenge.fromFirestore(doc))
-                .toList();
-            // Sort by createdAt descending in memory to avoid composite index requirement
-            challenges.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            return challenges;
-          },
-        );
+        .map((snapshot) {
+          final challenges = snapshot.docs
+              .map((doc) => Challenge.fromFirestore(doc))
+              .toList();
+          // Sort by createdAt descending in memory to avoid composite index requirement
+          challenges.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return challenges;
+        });
   }
 
   /// Stream of active challenges (accepted/in_progress) for a user
@@ -222,20 +237,63 @@ class ChatService {
     return _challengesRef
         .where('status', isEqualTo: ChallengeStatus.completed.name)
         .snapshots()
-        .map(
-          (snapshot) {
-            final challenges = snapshot.docs
-                .map((doc) => Challenge.fromFirestore(doc))
-                .where(
-                  (challenge) =>
-                      challenge.challengerId == userId ||
-                      challenge.challengeeId == userId,
-                )
-                .toList();
-            // Sort by createdAt descending (most recent first)
-            challenges.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            return challenges;
-          },
-        );
+        .map((snapshot) {
+          final challenges = snapshot.docs
+              .map((doc) => Challenge.fromFirestore(doc))
+              .where(
+                (challenge) =>
+                    challenge.challengerId == userId ||
+                    challenge.challengeeId == userId,
+              )
+              .toList();
+          // Sort by createdAt descending (most recent first)
+          challenges.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return challenges;
+        });
+  }
+
+  String _getChoiceDisplayName(String choice) {
+    switch (choice) {
+      case 'rock':
+        return '✊ rock';
+      case 'paper':
+        return '✋ paper';
+      case 'scissors':
+        return '✌️ scissors';
+      default:
+        return choice;
+    }
+  }
+
+  String _formatChallengeResultMessage({
+    required String challengerName,
+    required String challengeeName,
+    required String challengerChoice,
+    required String challengeeChoice,
+    required String challengerId,
+    required Map<String, dynamic> result,
+  }) {
+    final isTie = result['isTie'] as bool? ?? false;
+
+    if (isTie) {
+      final choiceDisplay = _getChoiceDisplayName(challengerChoice);
+      return '$challengerName and $challengeeName tied with $choiceDisplay!';
+    }
+
+    final winnerName = result['winnerName'] as String? ?? 'Unknown';
+    final winnerId = result['winnerId'] as String?;
+    final loserName = winnerId == challengerId
+        ? challengeeName
+        : challengerName;
+
+    final winnerChoice = winnerId == challengerId
+        ? _getChoiceDisplayName(challengerChoice)
+        : _getChoiceDisplayName(challengeeChoice);
+
+    final loserChoice = winnerId == challengerId
+        ? _getChoiceDisplayName(challengeeChoice)
+        : _getChoiceDisplayName(challengerChoice);
+
+    return '$winnerName beat $loserName with $winnerChoice against $loserChoice!';
   }
 }

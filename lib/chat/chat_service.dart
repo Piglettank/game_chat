@@ -171,7 +171,7 @@ class ChatService {
         await sendMessage(
           message: resultMessage,
           userId: 'system',
-          userName: 'Challenge Announcer',
+          userName: '[Challenge]',
         );
       }
     } else {

@@ -21,15 +21,12 @@ class EmbedConfig {
   });
 
   static final List<String> _randomUserNames = [
-    'Captain Crunch',
     'Squirrel Lord',
-    'Professor Quackers',
     'Dancing Pickle',
     'Lord Snuggles',
     'Wizard of Oz',
     'Cornhole Champion',
     'Pickle Rick',
-    'Potato King',
     'Captain Obvious',
     'Sir Lancelot',
     'The Mighty Duck',
@@ -37,6 +34,18 @@ class EmbedConfig {
     'Banana Split',
     'Cream Puff',
     'Bread',
+    'El Más Grande',
+    'Hungry Hippo',
+    'Pippi Longstocking',
+    'Joker',
+    'Bamse',
+    'Laban',
+    'Finn the Human',
+    'Spongebob',
+    'Pikachu',
+    'Mario',
+    'Link',
+    'Kirby',
   ];
 
   static String _generateRandomUserId() {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'chat/chat_screen.dart';
+import 'core/welcome_screen.dart';
 import 'core/embed_config.dart';
 
 void main() async {
@@ -37,12 +37,10 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Inter',
       ),
-      home: Scaffold(
-        body: ChatScreen(
-          chatId: config.chatId,
-          userId: config.userId,
-          userName: config.userName,
-        ),
+      home: WelcomeScreen(
+        chatId: config.chatId,
+        userId: config.userId,
+        userName: config.userName,
       ),
       debugShowCheckedModeBanner: false,
     );

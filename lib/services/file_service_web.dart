@@ -1,22 +1,25 @@
 import 'dart:convert';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import 'dart:js_interop';
+import 'package:web/web.dart' as web;
 
 /// Save file on web by triggering a download
 Future<bool> saveFile(String content, String fileName) async {
   try {
     final bytes = utf8.encode(content);
-    final blob = html.Blob([bytes], 'application/json');
-    final url = html.Url.createObjectUrlFromBlob(blob);
+    final blobParts = [bytes.toJS].toJS;
+    final blobOptions = web.BlobPropertyBag(type: 'application/json');
+    final blob = web.Blob(blobParts, blobOptions);
+    final url = web.URL.createObjectURL(blob);
 
-    final anchor = html.AnchorElement(href: url)
+    final anchor = web.HTMLAnchorElement()
+      ..href = url
       ..setAttribute('download', fileName)
       ..style.display = 'none';
 
-    html.document.body?.children.add(anchor);
+    web.document.body?.append(anchor);
     anchor.click();
-    html.document.body?.children.remove(anchor);
-    html.Url.revokeObjectUrl(url);
+    anchor.remove();
+    web.URL.revokeObjectURL(url);
 
     return true;
   } catch (e) {

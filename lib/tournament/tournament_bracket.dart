@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/tournament.dart' hide Offset;
-import '../models/saved_tournament_bracket.dart';
-import '../services/tournament_bracket_service.dart';
+import 'tournament.dart' hide Offset;
+import 'saved_tournament_bracket.dart';
+import 'tournament_bracket_service.dart';
 import 'bracket_canvas.dart';
 import 'toolbar.dart';
 

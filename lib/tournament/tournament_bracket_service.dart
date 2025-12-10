@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/tournament.dart';
-import '../models/saved_tournament_bracket.dart';
+import 'tournament.dart';
+import 'saved_tournament_bracket.dart';
 
 class TournamentBracketService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -68,11 +68,5 @@ class TournamentBracketService {
   /// Delete a bracket
   Future<void> deleteBracket(String bracketId) async {
     await _bracketsRef.doc(bracketId).delete();
-  }
-
-  /// Create a new empty bracket
-  Future<String> createBracket(String title) async {
-    final tournament = Tournament(title: title);
-    return await saveBracket(tournament: tournament);
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/tournament.dart' hide Offset;
+import 'tournament.dart' hide Offset;
 import 'heat_box.dart';
 import 'connection_painter.dart';
 

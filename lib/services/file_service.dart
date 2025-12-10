@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import '../models/tournament.dart';
+import '../tournament/tournament.dart';
 
 // Conditional import for web vs native
 import 'file_service_stub.dart'

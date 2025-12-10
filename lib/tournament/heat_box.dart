@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import '../models/tournament.dart' hide Offset;
+import 'tournament.dart' hide Offset;
 import 'player_card.dart';
 
 /// A pan gesture recognizer that starts immediately with no movement threshold

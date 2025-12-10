@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 
 // Conditional import for web vs native
 import 'user_storage_stub.dart'
@@ -48,11 +47,5 @@ class UserStorage {
         userId.isNotEmpty &&
         userName != null &&
         userName.isNotEmpty;
-  }
-
-  /// Clear user data (for testing/logout)
-  static Future<void> clearUserData() async {
-    platform.UserStoragePlatform.removeItem(_userIdKey);
-    platform.UserStoragePlatform.removeItem(_userNameKey);
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/tournament.dart' hide Offset;
+import 'tournament.dart' hide Offset;
 
 class PlayerCard extends StatefulWidget {
   final Player player;

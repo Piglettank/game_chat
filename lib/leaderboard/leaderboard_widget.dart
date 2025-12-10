@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-import '../models/leaderboard_entry.dart';
-import '../services/leaderboard_service.dart';
+import 'leaderboard_entry.dart';
+import 'leaderboard_service.dart';
 
 class LeaderboardWidget extends StatefulWidget {
   final bool isEditMode;
@@ -25,8 +25,12 @@ class LeaderboardWidgetState extends State<LeaderboardWidget> {
 
   @override
   void dispose() {
-    _nameControllers.values.forEach((controller) => controller.dispose());
-    _scoreControllers.values.forEach((controller) => controller.dispose());
+    for (final controller in _nameControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _scoreControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -45,8 +49,12 @@ class LeaderboardWidgetState extends State<LeaderboardWidget> {
   }
 
   void _clearEditMode() {
-    _nameControllers.values.forEach((controller) => controller.dispose());
-    _scoreControllers.values.forEach((controller) => controller.dispose());
+    for (final controller in _nameControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _scoreControllers.values) {
+      controller.dispose();
+    }
     _nameControllers.clear();
     _scoreControllers.clear();
     _editEntries.clear();
@@ -59,10 +67,6 @@ class LeaderboardWidgetState extends State<LeaderboardWidget> {
   @override
   void didUpdateWidget(LeaderboardWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // When entering edit mode, initialize edit entries
-    if (!oldWidget.isEditMode && widget.isEditMode) {
-      // Will be initialized in build when we get the entries from stream
-    }
     // When exiting edit mode, clear the edit state
     if (oldWidget.isEditMode && !widget.isEditMode) {
       _clearEditMode();

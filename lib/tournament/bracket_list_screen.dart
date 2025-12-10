@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/saved_tournament_bracket.dart';
-import '../services/tournament_bracket_service.dart';
+import 'saved_tournament_bracket.dart';
+import 'tournament_bracket_service.dart';
 import 'tournament_bracket.dart';
 
 class BracketListScreen extends StatefulWidget {

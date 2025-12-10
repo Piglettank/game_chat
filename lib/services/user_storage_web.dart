@@ -1,16 +1,15 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 
 class UserStoragePlatform {
   static String? getItem(String key) {
-    return html.window.localStorage[key];
+    return web.window.localStorage.getItem(key);
   }
 
   static void setItem(String key, String value) {
-    html.window.localStorage[key] = value;
+    web.window.localStorage.setItem(key, value);
   }
 
   static void removeItem(String key) {
-    html.window.localStorage.remove(key);
+    web.window.localStorage.removeItem(key);
   }
 }

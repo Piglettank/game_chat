@@ -7,17 +7,16 @@ import '../challenges/challenge.dart';
 import '../challenges/challenge_dialog.dart';
 import '../challenges/challenge_notification.dart';
 import '../challenges/rock_paper_scissors_game.dart';
-import '../leaderboard/leaderboard_widget.dart';
 import '../core/app_header.dart';
 import '../core/toolbar_button.dart';
 import '../core/tab_title.dart';
 
-class ChatScreen extends StatefulWidget {
+class ChatOnlyScreen extends StatefulWidget {
   final String chatId;
   final String userId;
   final String userName;
 
-  const ChatScreen({
+  const ChatOnlyScreen({
     super.key,
     required this.chatId,
     required this.userId,
@@ -25,10 +24,10 @@ class ChatScreen extends StatefulWidget {
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatOnlyScreen> createState() => _ChatOnlyScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatOnlyScreenState extends State<ChatOnlyScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late final ChatService _chatService;
@@ -36,8 +35,6 @@ class _ChatScreenState extends State<ChatScreen> {
   Timer? _completionDelayTimer;
   Challenge? _activeChallenge;
   bool _isUsersMenuOpen = false;
-  bool _isLeaderboardEditMode = false;
-  final GlobalKey<LeaderboardWidgetState> _leaderboardKey = GlobalKey<LeaderboardWidgetState>();
 
   // Local message list to prevent full rebuilds
   List<Message> _messages = [];
@@ -52,7 +49,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    setTabTitle('Leaderboard');
+    setTabTitle('Chat');
     _chatService = ChatService(chatId: widget.chatId);
     _joinChat();
     _startHeartbeat();
@@ -77,9 +74,6 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           _messages = newMessages;
         });
-
-        // With reverse: true, ListView automatically maintains scroll position at bottom
-        // No manual scrolling needed
       }
     });
   }
@@ -162,10 +156,8 @@ class _ChatScreenState extends State<ChatScreen> {
       // If challenge disappeared from active list, check if it completed
       if (previousChallengeId != null &&
           newChallengeId != previousChallengeId) {
-        // The challenge disappeared - fetch its latest state to check if it completed
-        // Don't cancel subscription yet - let it finish detecting completion if it hasn't already
         _checkChallengeCompletion(previousChallengeId);
-        return; // Don't update _activeChallenge yet, wait for completion check
+        return;
       }
 
       // Cancel subscription to previous challenge if we're getting a new one
@@ -195,7 +187,6 @@ class _ChatScreenState extends State<ChatScreen> {
           if (!mounted) return;
 
           if (challenge != null) {
-            // Update the challenge object with latest data
             if (_completionDelayTimer == null) {
               setState(() {
                 _activeChallenge = challenge;
@@ -208,7 +199,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 _completionDelayTimer == null) {
               _completionDelayTimer = Timer(const Duration(milliseconds: 2500), () {
                 if (mounted) {
-                  // After 2 seconds, check if there's a new active challenge
                   _chatService.getActiveChallenges(widget.userId).first.then((
                     challenges,
                   ) {
@@ -229,19 +219,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _checkChallengeCompletion(String challengeId) {
-    // Fetch the latest state of the challenge that disappeared
     _chatService.getChallenge(challengeId).first.then((challenge) {
       if (!mounted) return;
 
-      // Cancel the subscription now that we've checked
       _currentChallengeSubscription?.cancel();
       _currentChallengeSubscription = null;
 
       if (challenge != null &&
           challenge.isCompleted &&
           challenge.result != null) {
-        // Challenge completed - keep it visible for 2 seconds
-        // Only start timer if one isn't already running
         if (_completionDelayTimer == null) {
           setState(() {
             _activeChallenge = challenge;
@@ -249,7 +235,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
           _completionDelayTimer = Timer(const Duration(milliseconds: 2500), () {
             if (mounted) {
-              // After 2.5 seconds, check if there's a new active challenge
               _chatService.getActiveChallenges(widget.userId).first.then((
                 challenges,
               ) {
@@ -265,13 +250,11 @@ class _ChatScreenState extends State<ChatScreen> {
             }
           });
         } else {
-          // Timer already running, just update the challenge object
           setState(() {
             _activeChallenge = challenge;
           });
         }
       } else {
-        // Challenge didn't complete or doesn't exist - clear it immediately
         if (_completionDelayTimer == null) {
           _chatService.getActiveChallenges(widget.userId).first.then((
             challenges,
@@ -301,7 +284,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _startHeartbeat() {
-    // Update last seen every 5 minutes
     _heartbeatTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       _chatService.updateLastSeen(widget.userId);
     });
@@ -317,7 +299,6 @@ class _ChatScreenState extends State<ChatScreen> {
       userId: widget.userId,
       userName: widget.userName,
     );
-    // With reverse: true, new messages automatically appear at bottom
   }
 
   Future<void> _challengeUser(ActiveUser user) async {
@@ -357,308 +338,204 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isPhoneSize = MediaQuery.of(context).size.width < 600;
-    
     return Scaffold(
-      body: Row(
+      body: Column(
         children: [
-          // Leaderboard section (left half)
+          AppHeader(
+            icon: Icons.chat,
+            title: 'Chat',
+            actions: [
+              ToolbarButton(
+                icon: _isUsersMenuOpen
+                    ? Icons.people
+                    : Icons.people_outline,
+                label: 'Users',
+                onTap: () {
+                  setState(() {
+                    _isUsersMenuOpen = !_isUsersMenuOpen;
+                  });
+                },
+              ),
+            ],
+          ),
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                border: Border(
-                  right: BorderSide(
-                    color: Theme.of(context).dividerColor,
-                    width: 1,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Column(
+                        children: [
+                          Expanded(
+                            child: _messages.isEmpty && _challenges.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'No messages yet. Start the conversation!',
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    key: const ValueKey('messages_list'),
+                                    controller: _scrollController,
+                                    padding: const EdgeInsets.all(8.0),
+                                    itemCount:
+                                        _challenges.length + _messages.length,
+                                    reverse: true,
+                                    addAutomaticKeepAlives: false,
+                                    addRepaintBoundaries: true,
+                                    itemBuilder: (context, index) {
+                                      if (index < _challenges.length) {
+                                        final challenge = _challenges[index];
+                                        return ChallengeNotification(
+                                          key: ValueKey(
+                                            'challenge_${challenge.id}',
+                                          ),
+                                          challenge: challenge,
+                                          onAccept: () =>
+                                              _acceptChallenge(challenge),
+                                          onReject: () =>
+                                              _rejectChallenge(challenge),
+                                        );
+                                      }
+
+                                      final messageIndex =
+                                          index - _challenges.length;
+                                      final message =
+                                          _messages[_messages.length -
+                                              1 -
+                                              messageIndex];
+                                      return _MessageWidget(
+                                        key: ValueKey('message_${message.id}'),
+                                        message: message,
+                                        isOwnMessage:
+                                            message.userId == widget.userId,
+                                        formatTimestamp: _formatTimestamp,
+                                      );
+                                    },
+                                  ),
+                          ),
+                          if (_activeChallenge != null)
+                            RockPaperScissorsGame(
+                              challenge: _activeChallenge!,
+                              currentUserId: widget.userId,
+                              onChoiceSelected: _makeChoice,
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              child: _buildLeaderboard(context),
+                if (_isUsersMenuOpen)
+                  Container(
+                    width: 200,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.3),
+                      border: Border(
+                        left: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppHeader(
+                          icon: Icons.people,
+                          title: 'Active Users — ${_activeUsers.length}',
+                        ),
+                        Expanded(child: _buildActiveUsersList(context)),
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ),
-          // Chat section (right half) - hidden on phone screens
-          if (!isPhoneSize)
-            Expanded(
-            child: Column(
+          Container(
+            padding: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border(
+                top: BorderSide(
+                  color: Theme.of(context).dividerColor,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
               children: [
-                AppHeader(
-                  icon: Icons.chat,
-                  title: 'Chat',
-                  actions: [
-                    ToolbarButton(
-                      icon: _isUsersMenuOpen
-                          ? Icons.people
-                          : Icons.people_outline,
-                      label: 'Users',
-                      onTap: () {
-                        setState(() {
-                          _isUsersMenuOpen = !_isUsersMenuOpen;
-                        });
-                      },
-                    ),
-                  ],
-                ),
                 Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            Column(
-                              children: [
-                                Expanded(
-                                  child: _messages.isEmpty && _challenges.isEmpty
-                                      ? const Center(
-                                          child: Text(
-                                            'No messages yet. Start the conversation!',
-                                          ),
-                                        )
-                                      : ListView.builder(
-                                          key: const ValueKey('messages_list'),
-                                          controller: _scrollController,
-                                          padding: const EdgeInsets.all(8.0),
-                                          itemCount:
-                                              _challenges.length + _messages.length,
-                                          reverse: true,
-                                          addAutomaticKeepAlives: false,
-                                          addRepaintBoundaries: true,
-                                          itemBuilder: (context, index) {
-                                            // Show challenges first (will appear at bottom with reverse: true)
-                                            if (index < _challenges.length) {
-                                              final challenge = _challenges[index];
-                                              return ChallengeNotification(
-                                                key: ValueKey(
-                                                  'challenge_${challenge.id}',
-                                                ),
-                                                challenge: challenge,
-                                                onAccept: () =>
-                                                    _acceptChallenge(challenge),
-                                                onReject: () =>
-                                                    _rejectChallenge(challenge),
-                                              );
-                                            }
-
-                                            // Show messages after challenges (will appear at top with reverse: true)
-                                            final messageIndex =
-                                                index - _challenges.length;
-                                            final message =
-                                                _messages[_messages.length -
-                                                    1 -
-                                                    messageIndex];
-                                            return _MessageWidget(
-                                              key: ValueKey('message_${message.id}'),
-                                              message: message,
-                                              isOwnMessage:
-                                                  message.userId == widget.userId,
-                                              formatTimestamp: _formatTimestamp,
-                                            );
-                                          },
-                                        ),
-                                ),
-                                // Active game UI at the bottom
-                                if (_activeChallenge != null)
-                                  RockPaperScissorsGame(
-                                    challenge: _activeChallenge!,
-                                    currentUserId: widget.userId,
-                                    onChoiceSelected: _makeChoice,
-                                  ),
-                              ],
-                            ),
-                          ],
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: 'Type a message...',
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withValues(alpha: 0.5),
+                          width: 1,
                         ),
                       ),
-                      if (_isUsersMenuOpen)
-                        Container(
-                          width: 200,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest
-                                .withValues(alpha: 0.3),
-                            border: Border(
-                              left: BorderSide(
-                                color: Theme.of(context).dividerColor,
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(16.0),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: Theme.of(context).dividerColor,
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.people,
-                                      size: 20,
-                                      color: Theme.of(context).colorScheme.primary,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Active Users — ${_activeUsers.length}',
-                                      style: Theme.of(context).textTheme.titleSmall
-                                          ?.copyWith(fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Expanded(child: _buildActiveUsersList(context)),
-                            ],
-                          ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withValues(alpha: 0.5),
+                          width: 1,
                         ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(8.0),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    border: Border(
-                      top: BorderSide(
-                        color: Theme.of(context).dividerColor,
-                        width: 1,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withValues(alpha: 0.7),
+                          width: 1,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 12.0,
                       ),
                     ),
+                    maxLines: 1,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _sendMessage(),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          decoration: InputDecoration(
-                            hintText: 'Type a message...',
-                            border: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Theme.of(
-                                  context,
-                                ).dividerColor.withValues(alpha: 0.5),
-                                width: 1,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Theme.of(
-                                  context,
-                                ).dividerColor.withValues(alpha: 0.5),
-                                width: 1,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Theme.of(
-                                  context,
-                                ).dividerColor.withValues(alpha: 0.7),
-                                width: 1,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 12.0,
-                            ),
-                          ),
-                          maxLines: 1,
-                          textCapitalization: TextCapitalization.sentences,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _sendMessage(),
+                ),
+                const SizedBox(width: 8.0),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _sendMessage,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0xFF00bcd4).withValues(alpha: 0.2),
+                        border: Border.all(
+                          color: const Color(0xFF00bcd4),
+                          width: 1,
                         ),
                       ),
-                      const SizedBox(width: 8.0),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _sendMessage,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: const Color(0xFF00bcd4).withValues(alpha: 0.2),
-                              border: Border.all(
-                                color: const Color(0xFF00bcd4),
-                                width: 1,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.send,
-                              size: 20,
-                              color: Color(0xFF00bcd4),
-                            ),
-                          ),
-                        ),
+                      child: const Icon(
+                        Icons.send,
+                        size: 20,
+                        color: Color(0xFF00bcd4),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ],
             ),
-            ),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLeaderboard(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppHeader(
-          icon: Icons.emoji_events,
-          title: 'Leaderboard',
-          actions: [
-            if (_isLeaderboardEditMode) ...[
-              ToolbarButton(
-                icon: Icons.cancel,
-                label: 'Cancel',
-                onTap: () {
-                  _leaderboardKey.currentState?.cancelEdit();
-                  setState(() {
-                    _isLeaderboardEditMode = false;
-                  });
-                },
-              ),
-              const SizedBox(width: 12),
-              ToolbarButton(
-                icon: Icons.save,
-                label: 'Save',
-                onTap: () {
-                  _leaderboardKey.currentState?.saveLeaderboard();
-                },
-                isPrimary: true,
-              ),
-            ] else
-              ToolbarButton(
-                icon: Icons.edit,
-                label: 'Edit',
-                onTap: () {
-                  setState(() {
-                    _isLeaderboardEditMode = true;
-                  });
-                },
-                isPrimary: true,
-              ),
-          ],
-        ),
-        LeaderboardWidget(
-          key: _leaderboardKey,
-          isEditMode: _isLeaderboardEditMode,
-          onSave: () {
-            setState(() {
-              _isLeaderboardEditMode = false;
-            });
-          },
-        ),
-      ],
     );
   }
 
@@ -672,7 +549,6 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
 
-    // Sort users: current user first, then others alphabetically
     final sortedUsers = List<ActiveUser>.from(_activeUsers);
     sortedUsers.sort((a, b) {
       final aIsCurrent = a.userId == widget.userId;
@@ -685,7 +561,6 @@ class _ChatScreenState extends State<ChatScreen> {
       return a.userName.toLowerCase().compareTo(b.userName.toLowerCase());
     });
 
-    // Calculate total items: users + potential divider after current user
     final currentUserIndex = sortedUsers.indexWhere(
       (u) => u.userId == widget.userId,
     );
@@ -701,7 +576,6 @@ class _ChatScreenState extends State<ChatScreen> {
       addAutomaticKeepAlives: false,
       addRepaintBoundaries: true,
       itemBuilder: (context, index) {
-        // If this is the divider position (right after current user)
         if (hasDivider && index == currentUserIndex + 1) {
           return Container(
             margin: const EdgeInsets.symmetric(vertical: 12.0),
@@ -714,7 +588,6 @@ class _ChatScreenState extends State<ChatScreen> {
           );
         }
 
-        // Adjust index if divider was inserted before this user
         final userIndex = hasDivider && index > currentUserIndex + 1
             ? index - 1
             : index;

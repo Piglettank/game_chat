@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../chat/chat_screen.dart';
+import '../chat/chat_only_screen.dart';
 import '../tournament/bracket_list_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -100,8 +101,8 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.chat),
-                    label: const Text('Go to Chat'),
+                    icon: const Icon(Icons.emoji_events),
+                    label: const Text('Go to Leaderboard'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 32.0,
@@ -121,8 +122,33 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.emoji_events),
+                    icon: const Icon(Icons.account_tree_outlined),
                     label: const Text('Go to Tournament'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32.0,
+                        vertical: 16.0,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16.0),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ChatOnlyScreen(
+                            chatId: chatId,
+                            userId: userId,
+                            userName: userName,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.chat),
+                    label: const Text('Go to Chat'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 32.0,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'saved_tournament_bracket.dart';
 import 'tournament_bracket_service.dart';
 import 'tournament_bracket.dart';
+import 'bracket_thumbnail.dart';
 import '../core/app_header.dart';
 import '../core/toolbar_button.dart';
 
@@ -173,10 +174,15 @@ class _BracketListScreenState extends State<BracketListScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         contentPadding: const EdgeInsets.only(
-                          left: 16,
+                          left: 12,
                           right: 16,
-                          top: 2,
-                          bottom: 6,
+                          top: 8,
+                          bottom: 8,
+                        ),
+                        leading: BracketThumbnail(
+                          tournament: bracket.tournament,
+                          width: 100,
+                          height: 64,
                         ),
                         title: Text(
                           bracket.title,

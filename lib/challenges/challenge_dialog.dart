@@ -26,11 +26,17 @@ class ChallengeDialog extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).pop(GameType.rockPaperScissors);
             },
-            icon: const Icon(Icons.handshake),
+            icon: const Text('✊', style: TextStyle(fontSize: 18)),
             label: const Text('Rock Paper Scissors'),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 48),
               alignment: Alignment.centerLeft,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4.0),
+              ),
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -38,11 +44,17 @@ class ChallengeDialog extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).pop(GameType.reactionTest);
             },
-            icon: const Icon(Icons.flash_on),
+            icon: const Text('⚡', style: TextStyle(fontSize: 18)),
             label: const Text('Reaction Test'),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 48),
               alignment: Alignment.centerLeft,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4.0),
+              ),
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -55,6 +67,12 @@ class ChallengeDialog extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 48),
               alignment: Alignment.centerLeft,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4.0),
+              ),
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+              ),
             ),
           ),
         ],

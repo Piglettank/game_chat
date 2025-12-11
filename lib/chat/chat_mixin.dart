@@ -16,11 +16,12 @@ import '../core/tab_title.dart';
 mixin ChatMixin<T extends StatefulWidget> on State<T> {
   final TextEditingController messageController = TextEditingController();
   final ScrollController scrollController = ScrollController();
+  final FocusNode messageFocusNode = FocusNode();
   late ChatService chatService;
   Timer? heartbeatTimer;
   Timer? completionDelayTimer;
   Challenge? activeChallenge;
-  bool isUsersMenuOpen = false;
+  bool isUsersMenuOpen = true;
 
   // Local message list to prevent full rebuilds
   List<Message> messages = [];
@@ -57,10 +58,11 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
     leaveChat();
     messageController.dispose();
     scrollController.dispose();
+    messageFocusNode.dispose();
   }
 
   void listenToMessages() {
-    messagesSubscription = chatService.getMessages().listen((newMessages) {
+    messagesSubscription = chatService.getMessages(currentUserId: userId).listen((newMessages) {
       if (!mounted) return;
 
       final previousIds = messages.map((m) => m.id).toList();
@@ -451,6 +453,8 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
                                       isOwnMessage:
                                           message.userId == userId,
                                       formatTimestamp: formatTimestamp,
+                                      messageController: messageController,
+                                      messageFocusNode: messageFocusNode,
                                     );
                                   },
                                 ),
@@ -529,6 +533,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
               Expanded(
                 child: TextField(
                   controller: messageController,
+                  focusNode: messageFocusNode,
                   decoration: InputDecoration(
                     hintText: 'Type a message...',
                     border: OutlineInputBorder(
@@ -664,7 +669,9 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
           isCurrentUser: isCurrentUser,
           isLastCurrentUser: isLastCurrentUser,
           hasDividerAfter: hasDividerAfter,
-          onTap: isCurrentUser ? null : () => challengeUser(user),
+          onChallenge: isCurrentUser ? null : () => challengeUser(user),
+          messageController: messageController,
+          messageFocusNode: messageFocusNode,
         );
       },
     );
@@ -675,67 +682,162 @@ class _MessageWidget extends StatelessWidget {
   final Message message;
   final bool isOwnMessage;
   final String Function(DateTime) formatTimestamp;
+  final TextEditingController? messageController;
+  final FocusNode? messageFocusNode;
 
   const _MessageWidget({
     super.key,
     required this.message,
     required this.isOwnMessage,
     required this.formatTimestamp,
+    this.messageController,
+    this.messageFocusNode,
   });
+
+  bool get isWhisper => message.toUser != null;
+
+  String get displayMessage {
+    if (!isWhisper) return message.message;
+    
+    // Strip /w "username" prefix if it exists (safety check)
+    final text = message.message.trim();
+    if (text.startsWith('/w ')) {
+      final rest = text.substring(3).trim();
+      if (rest.startsWith('"')) {
+        final endQuoteIndex = rest.indexOf('"', 1);
+        if (endQuoteIndex != -1) {
+          return rest.substring(endQuoteIndex + 1).trim();
+        }
+      }
+    }
+    return message.message;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: isOwnMessage ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-        decoration: BoxDecoration(
-          color: isOwnMessage
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16.0),
-        ),
-        constraints: BoxConstraints(
-          minWidth: 120,
-          maxWidth: MediaQuery.of(context).size.width * 0.7,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!isOwnMessage)
+      child: Opacity(
+        opacity: isWhisper ? 0.7 : 1.0,
+        child: IntrinsicWidth(
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+            decoration: BoxDecoration(
+              color: isOwnMessage
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(16.0),
+            ),
+            constraints: BoxConstraints(
+              minWidth: 120,
+              maxWidth: MediaQuery.of(context).size.width * 0.7,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              if (!isOwnMessage)
+                Row(
+                  children: [
+                    Text(
+                      message.userName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isOwnMessage
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (isWhisper) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '(whisper)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          color: isOwnMessage
+                              ? Colors.white70
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              if (isOwnMessage && isWhisper && message.toUserName != null)
+                Text(
+                  'whisper to ${message.toUserName}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.white70,
+                  ),
+                ),
+              const SizedBox(height: 4),
               Text(
-                message.userName,
+                displayMessage,
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
                   color: isOwnMessage
                       ? Colors.white
                       : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-            const SizedBox(height: 4),
-            Text(
-              message.message,
-              style: TextStyle(
-                color: isOwnMessage
-                    ? Colors.white
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: Text(
+                      formatTimestamp(message.sent),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isOwnMessage
+                            ? Colors.white70
+                            : Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                  if (isWhisper && !isOwnMessage && messageController != null) ...[
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        final replyText = '/w "${message.userName}" ';
+                        messageController!.text = replyText;
+                        messageController!.selection = TextSelection.fromPosition(
+                          TextPosition(offset: replyText.length),
+                        );
+                        messageFocusNode?.requestFocus();
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 8.0,
+                        ),
+                        minimumSize: const Size(60, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Reply',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
+            ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              formatTimestamp(message.sent),
-              style: TextStyle(
-                fontSize: 10,
-                color: isOwnMessage
-                    ? Colors.white70
-                    : Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -748,6 +850,9 @@ class _ActiveUserWidget extends StatelessWidget {
   final bool isLastCurrentUser;
   final bool hasDividerAfter;
   final VoidCallback? onTap;
+  final VoidCallback? onChallenge;
+  final TextEditingController? messageController;
+  final FocusNode? messageFocusNode;
 
   const _ActiveUserWidget({
     super.key,
@@ -756,52 +861,111 @@ class _ActiveUserWidget extends StatelessWidget {
     required this.isLastCurrentUser,
     this.hasDividerAfter = false,
     this.onTap,
+    this.onChallenge,
+    this.messageController,
+    this.messageFocusNode,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8.0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-        decoration: BoxDecoration(
-          color: isCurrentUser
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        child: Row(
+    return Card(
+      color: isCurrentUser
+          ? Theme.of(context).colorScheme.primaryContainer
+          : Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(4.0),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: Colors.green,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                user.userName,
-                maxLines: 1,
-                style: TextStyle(
-                  fontWeight: isCurrentUser
-                      ? FontWeight.bold
-                      : FontWeight.normal,
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-                overflow: TextOverflow.ellipsis,
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    user.userName,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontWeight: isCurrentUser
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
-            if (!isCurrentUser)
-              Icon(
-                Icons.sports_martial_arts,
-                size: 16,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            if (!isCurrentUser && messageController != null && onChallenge != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onChallenge,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4.0),
+                        ),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Challenge',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        final whisperText = '/w "${user.userName}" ';
+                        messageController!.text = whisperText;
+                        messageController!.selection = TextSelection.fromPosition(
+                          TextPosition(offset: whisperText.length),
+                        );
+                        messageFocusNode?.requestFocus();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4.0),
+                        ),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Whisper',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+            ],
           ],
         ),
       ),

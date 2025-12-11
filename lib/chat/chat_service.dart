@@ -19,14 +19,74 @@ class ChatService {
   CollectionReference get _challengesRef =>
       _firestore.collection('chat').doc(chatId).collection('challenges');
 
-  Stream<List<Message>> getMessages() {
+  Stream<List<Message>> getMessages({String? currentUserId}) {
     return _messagesRef
         .orderBy('sent', descending: false)
         .snapshots()
         .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList(),
+          (snapshot) {
+            final allMessages = snapshot.docs
+                .map((doc) => Message.fromFirestore(doc))
+                .toList();
+            
+            // Filter whispers: show if currentUserId is the recipient or sender
+            if (currentUserId != null) {
+              return allMessages.where((message) {
+                // Show regular messages (no toUser) to everyone
+                if (message.toUser == null) return true;
+                // Show whispers to both the recipient and the sender
+                return message.toUser == currentUserId || 
+                       message.userId == currentUserId;
+              }).toList();
+            }
+            
+            return allMessages;
+          },
         );
+  }
+
+  /// Find user ID by user name from active users
+  Future<String?> findUserIdByName(String userName) async {
+    final usersSnapshot = await _activeUsersRef.get();
+    for (final doc in usersSnapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>?;
+      if (data != null) {
+        final name = data['userName'] as String?;
+        if (name != null && name.toLowerCase() == userName.toLowerCase()) {
+          return doc.id;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Parse whisper command: /w "user name" message
+  /// Returns (targetUserId, actualMessage) or null if not a whisper
+  Future<Map<String, String>?> _parseWhisperCommand(
+    String message,
+  ) async {
+    final trimmed = message.trim();
+    if (!trimmed.startsWith('/w ')) return null;
+    
+    final rest = trimmed.substring(3).trim();
+    if (!rest.startsWith('"')) return null;
+    
+    final endQuoteIndex = rest.indexOf('"', 1);
+    if (endQuoteIndex == -1) return null;
+    
+    final targetUserName = rest.substring(1, endQuoteIndex);
+    final actualMessage = rest.substring(endQuoteIndex + 1).trim();
+    
+    if (actualMessage.isEmpty) return null;
+    
+    final targetUserId = await findUserIdByName(targetUserName);
+    if (targetUserId == null) return null;
+    
+    return {
+      'targetUserId': targetUserId,
+      'targetUserName': targetUserName,
+      'message': actualMessage,
+    };
   }
 
   Future<void> sendMessage({
@@ -34,12 +94,23 @@ class ChatService {
     required String userId,
     required String userName,
   }) async {
-    await _messagesRef.add({
-      'message': message,
+    // Check if this is a whisper command
+    final whisperData = await _parseWhisperCommand(message);
+    
+    final messageData = {
+      'message': whisperData != null ? whisperData['message'] : message,
       'sent': FieldValue.serverTimestamp(),
       'userId': userId,
       'userName': userName,
-    });
+      'fromUserName': userName,
+    };
+    
+    if (whisperData != null) {
+      messageData['toUser'] = whisperData['targetUserId'];
+      messageData['toUserName'] = whisperData['targetUserName'];
+    }
+    
+    await _messagesRef.add(messageData);
   }
 
   /// Add or update user in active users list

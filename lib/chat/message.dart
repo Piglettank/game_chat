@@ -6,6 +6,9 @@ class Message {
   final DateTime sent;
   final String userId;
   final String userName;
+  final String? fromUserName;
+  final String? toUser;
+  final String? toUserName;
 
   Message({
     required this.id,
@@ -13,6 +16,9 @@ class Message {
     required this.sent,
     required this.userId,
     required this.userName,
+    this.fromUserName,
+    this.toUser,
+    this.toUserName,
   });
 
   factory Message.fromFirestore(DocumentSnapshot doc) {
@@ -49,15 +55,28 @@ class Message {
       sent: sentDate,
       userId: data['userId'] as String? ?? '',
       userName: data['userName'] as String? ?? 'Anonymous',
+      fromUserName: data['fromUserName'] as String?,
+      toUser: data['toUser'] as String?,
+      toUserName: data['toUserName'] as String?,
     );
   }
 
   Map<String, dynamic> toFirestore() {
-    return {
+    final map = {
       'message': message,
       'sent': Timestamp.fromDate(sent),
       'userId': userId,
       'userName': userName,
     };
+    if (fromUserName != null) {
+      map['fromUserName'] = fromUserName!;
+    }
+    if (toUser != null) {
+      map['toUser'] = toUser!;
+    }
+    if (toUserName != null) {
+      map['toUserName'] = toUserName!;
+    }
+    return map;
   }
 }

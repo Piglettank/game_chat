@@ -164,6 +164,13 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
       }
 
       if (newChallenge != null && newChallengeId != previousChallengeId) {
+        // Close users menu on small phone screens when a challenge starts
+        final isPhoneSize = MediaQuery.of(context).size.width < 600;
+        if (isPhoneSize && isUsersMenuOpen) {
+          setState(() {
+            isUsersMenuOpen = false;
+          });
+        }
         listenToChallengeUpdates(newChallengeId!);
       }
 
@@ -323,6 +330,13 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
   }
 
   Future<void> acceptChallenge(Challenge challenge) async {
+    // Close users menu on small phone screens to make room for the game
+    final isPhoneSize = MediaQuery.of(context).size.width < 600;
+    if (isPhoneSize && isUsersMenuOpen) {
+      setState(() {
+        isUsersMenuOpen = false;
+      });
+    }
     await chatService.acceptChallenge(challenge.id);
   }
 

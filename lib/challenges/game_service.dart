@@ -112,4 +112,60 @@ class GameService {
       };
     }
   }
+
+  /// Calculate result for Find the Goat game
+  /// Each player's choice is simply "found" or "not-found"
+  static Map<String, dynamic> calculateFindTheGoatResult({
+    required String challengerChoice,
+    required String challengeeChoice,
+    required String challengerId,
+    required String challengerName,
+    required String challengeeId,
+    required String challengeeName,
+  }) {
+    final challengerFoundGoat = challengerChoice == 'found';
+    final challengeeFoundGoat = challengeeChoice == 'found';
+
+    if (challengerFoundGoat && challengeeFoundGoat) {
+      // Both found the goat - tie
+      return {
+        'winnerId': null,
+        'winnerName': null,
+        'reason': 'Both found the goat!',
+        'isTie': true,
+        'challengerFound': true,
+        'challengeeFound': true,
+      };
+    } else if (challengerFoundGoat) {
+      // Challenger wins
+      return {
+        'winnerId': challengerId,
+        'winnerName': challengerName,
+        'reason': '$challengerName found the goat!',
+        'isTie': false,
+        'challengerFound': true,
+        'challengeeFound': false,
+      };
+    } else if (challengeeFoundGoat) {
+      // Challengee wins
+      return {
+        'winnerId': challengeeId,
+        'winnerName': challengeeName,
+        'reason': '$challengeeName found the goat!',
+        'isTie': false,
+        'challengerFound': false,
+        'challengeeFound': true,
+      };
+    } else {
+      // Neither found the goat - tie (both lose)
+      return {
+        'winnerId': null,
+        'winnerName': null,
+        'reason': 'Neither found the goat!',
+        'isTie': true,
+        'challengerFound': false,
+        'challengeeFound': false,
+      };
+    }
+  }
 }

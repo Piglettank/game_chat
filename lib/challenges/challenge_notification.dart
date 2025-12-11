@@ -100,6 +100,8 @@ class ChallengeNotification extends StatelessWidget {
         return 'Rock Paper Scissors';
       case GameType.reactionTest:
         return 'Reaction Test';
+      case GameType.findTheGoat:
+        return 'Find the Goat';
     }
   }
 }

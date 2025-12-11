@@ -12,6 +12,7 @@ enum ChallengeStatus {
 enum GameType {
   rockPaperScissors,
   reactionTest,
+  findTheGoat,
 }
 
 enum RockPaperScissorsChoice {

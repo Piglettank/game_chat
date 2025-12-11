@@ -45,6 +45,18 @@ class ChallengeDialog extends StatelessWidget {
               alignment: Alignment.centerLeft,
             ),
           ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop(GameType.findTheGoat);
+            },
+            icon: const Text('🐐', style: TextStyle(fontSize: 18)),
+            label: const Text('Find the Goat'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+              alignment: Alignment.centerLeft,
+            ),
+          ),
         ],
       ),
       actions: [

@@ -153,6 +153,15 @@ class ChatService {
           challengeeId: challenge.challengeeId,
           challengeeName: challenge.challengeeName,
         );
+      } else if (challenge.gameType == GameType.findTheGoat) {
+        result = GameService.calculateFindTheGoatResult(
+          challengerChoice: newChoices['challenger']!,
+          challengeeChoice: newChoices['challengee']!,
+          challengerId: challenge.challengerId,
+          challengerName: challenge.challengerName,
+          challengeeId: challenge.challengeeId,
+          challengeeName: challenge.challengeeName,
+        );
       } else {
         result = GameService.calculateRockPaperScissorsResult(
           challengerChoice: newChoices['challenger']!,
@@ -174,6 +183,12 @@ class ChatService {
         final String resultMessage;
         if (challenge.gameType == GameType.reactionTest) {
           resultMessage = _formatReactionTestResultMessage(
+            challengerName: challenge.challengerName,
+            challengeeName: challenge.challengeeName,
+            result: result,
+          );
+        } else if (challenge.gameType == GameType.findTheGoat) {
+          resultMessage = _formatFindTheGoatResultMessage(
             challengerName: challenge.challengerName,
             challengeeName: challenge.challengeeName,
             result: result,
@@ -316,5 +331,28 @@ class ChatService {
     final loserTime = isWinnerChallenger ? challengeeTime : challengerTime;
 
     return '⚡ $winnerName beat $loserName in reaction test! ($winnerTime ms vs $loserTime ms)';
+  }
+
+  String _formatFindTheGoatResultMessage({
+    required String challengerName,
+    required String challengeeName,
+    required Map<String, dynamic> result,
+  }) {
+    final isTie = result['isTie'] as bool? ?? false;
+    final challengerFound = result['challengerFound'] as bool? ?? false;
+    final challengeeFound = result['challengeeFound'] as bool? ?? false;
+
+    if (isTie) {
+      if (challengerFound && challengeeFound) {
+        return '🐐 $challengerName and $challengeeName both found the goat! It\'s a tie!';
+      } else {
+        return '🚪 Neither $challengerName nor $challengeeName found the goat!';
+      }
+    }
+
+    final winnerName = result['winnerName'] as String? ?? 'Unknown';
+    final loserName = winnerName == challengerName ? challengeeName : challengerName;
+
+    return '🐐 $winnerName found the goat and beat $loserName!';
   }
 }

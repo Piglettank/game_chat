@@ -8,6 +8,7 @@ import '../challenges/challenge_dialog.dart';
 import '../challenges/challenge_notification.dart';
 import '../challenges/rock_paper_scissors_game.dart';
 import '../challenges/reaction_test_game.dart';
+import '../challenges/find_the_goat_game.dart';
 import '../core/app_header.dart';
 import '../core/toolbar_button.dart';
 import '../core/tab_title.dart';
@@ -321,6 +322,39 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
+  Future<void> makeFindTheGoatChoice(String choice) async {
+    if (activeChallenge == null) return;
+
+    await chatService.makeChoice(
+      challengeId: activeChallenge!.id,
+      userId: userId,
+      choice: choice,
+    );
+  }
+
+  Widget _buildGameWidget() {
+    switch (activeChallenge!.gameType) {
+      case GameType.reactionTest:
+        return ReactionTestGame(
+          challenge: activeChallenge!,
+          currentUserId: userId,
+          onReactionTimeRecorded: makeReactionChoice,
+        );
+      case GameType.findTheGoat:
+        return FindTheGoatGame(
+          challenge: activeChallenge!,
+          currentUserId: userId,
+          onChoiceSelected: makeFindTheGoatChoice,
+        );
+      case GameType.rockPaperScissors:
+        return RockPaperScissorsGame(
+          challenge: activeChallenge!,
+          currentUserId: userId,
+          onChoiceSelected: makeChoice,
+        );
+    }
+  }
+
   String formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
@@ -412,17 +446,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
                                 ),
                         ),
                         if (activeChallenge != null)
-                          activeChallenge!.gameType == GameType.reactionTest
-                              ? ReactionTestGame(
-                                  challenge: activeChallenge!,
-                                  currentUserId: userId,
-                                  onReactionTimeRecorded: makeReactionChoice,
-                                )
-                              : RockPaperScissorsGame(
-                                  challenge: activeChallenge!,
-                                  currentUserId: userId,
-                                  onChoiceSelected: makeChoice,
-                                ),
+                          _buildGameWidget(),
                       ],
                     ),
                   ],

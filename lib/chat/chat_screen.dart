@@ -7,6 +7,7 @@ import '../challenges/challenge.dart';
 import '../challenges/challenge_dialog.dart';
 import '../challenges/challenge_notification.dart';
 import '../challenges/rock_paper_scissors_game.dart';
+import '../challenges/reaction_test_game.dart';
 import '../leaderboard/leaderboard_widget.dart';
 import '../core/app_header.dart';
 import '../core/toolbar_button.dart';
@@ -355,6 +356,16 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Future<void> _makeReactionChoice(String reactionTimeMs) async {
+    if (_activeChallenge == null) return;
+
+    await _chatService.makeChoice(
+      challengeId: _activeChallenge!.id,
+      userId: widget.userId,
+      choice: reactionTimeMs,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isPhoneSize = MediaQuery.of(context).size.width < 600;
@@ -458,11 +469,17 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                                 // Active game UI at the bottom
                                 if (_activeChallenge != null)
-                                  RockPaperScissorsGame(
-                                    challenge: _activeChallenge!,
-                                    currentUserId: widget.userId,
-                                    onChoiceSelected: _makeChoice,
-                                  ),
+                                  _activeChallenge!.gameType == GameType.reactionTest
+                                      ? ReactionTestGame(
+                                          challenge: _activeChallenge!,
+                                          currentUserId: widget.userId,
+                                          onReactionTimeRecorded: _makeReactionChoice,
+                                        )
+                                      : RockPaperScissorsGame(
+                                          challenge: _activeChallenge!,
+                                          currentUserId: widget.userId,
+                                          onChoiceSelected: _makeChoice,
+                                        ),
                               ],
                             ),
                           ],

@@ -143,14 +143,26 @@ class ChatService {
       // Both choices made, calculate result
       updateData['status'] = ChallengeStatus.inProgress.name;
 
-      final result = GameService.calculateRockPaperScissorsResult(
-        challengerChoice: newChoices['challenger']!,
-        challengeeChoice: newChoices['challengee']!,
-        challengerId: challenge.challengerId,
-        challengerName: challenge.challengerName,
-        challengeeId: challenge.challengeeId,
-        challengeeName: challenge.challengeeName,
-      );
+      final Map<String, dynamic> result;
+      if (challenge.gameType == GameType.reactionTest) {
+        result = GameService.calculateReactionTestResult(
+          challengerChoice: newChoices['challenger']!,
+          challengeeChoice: newChoices['challengee']!,
+          challengerId: challenge.challengerId,
+          challengerName: challenge.challengerName,
+          challengeeId: challenge.challengeeId,
+          challengeeName: challenge.challengeeName,
+        );
+      } else {
+        result = GameService.calculateRockPaperScissorsResult(
+          challengerChoice: newChoices['challenger']!,
+          challengeeChoice: newChoices['challengee']!,
+          challengerId: challenge.challengerId,
+          challengerName: challenge.challengerName,
+          challengeeId: challenge.challengeeId,
+          challengeeName: challenge.challengeeName,
+        );
+      }
 
       updateData['result'] = result;
       updateData['status'] = ChallengeStatus.completed.name;
@@ -159,14 +171,23 @@ class ChatService {
 
       // Only challenger sends the result message to chat
       if (isChallenger) {
-        final resultMessage = _formatChallengeResultMessage(
-          challengerName: challenge.challengerName,
-          challengeeName: challenge.challengeeName,
-          challengerChoice: newChoices['challenger']!,
-          challengeeChoice: newChoices['challengee']!,
-          challengerId: challenge.challengerId,
-          result: result,
-        );
+        final String resultMessage;
+        if (challenge.gameType == GameType.reactionTest) {
+          resultMessage = _formatReactionTestResultMessage(
+            challengerName: challenge.challengerName,
+            challengeeName: challenge.challengeeName,
+            result: result,
+          );
+        } else {
+          resultMessage = _formatChallengeResultMessage(
+            challengerName: challenge.challengerName,
+            challengeeName: challenge.challengeeName,
+            challengerChoice: newChoices['challenger']!,
+            challengeeChoice: newChoices['challengee']!,
+            challengerId: challenge.challengerId,
+            result: result,
+          );
+        }
 
         await sendMessage(
           message: resultMessage,
@@ -271,5 +292,29 @@ class ChatService {
         : _getChoiceDisplayName(challengerChoice);
 
     return '$winnerName beat $loserName with $winnerChoice against $loserChoice!';
+  }
+
+  String _formatReactionTestResultMessage({
+    required String challengerName,
+    required String challengeeName,
+    required Map<String, dynamic> result,
+  }) {
+    final isTie = result['isTie'] as bool? ?? false;
+    final challengerTime = result['challengerTime'] as int? ?? 0;
+    final challengeeTime = result['challengeeTime'] as int? ?? 0;
+
+    if (isTie) {
+      return '⚡ $challengerName and $challengeeName tied with $challengerTime ms reaction time!';
+    }
+
+    final winnerName = result['winnerName'] as String? ?? 'Unknown';
+    final winnerId = result['winnerId'] as String?;
+    final isWinnerChallenger = winnerId == null ? false : (winnerName == challengerName);
+    
+    final winnerTime = isWinnerChallenger ? challengerTime : challengeeTime;
+    final loserName = isWinnerChallenger ? challengeeName : challengerName;
+    final loserTime = isWinnerChallenger ? challengeeTime : challengerTime;
+
+    return '⚡ $winnerName beat $loserName in reaction test! ($winnerTime ms vs $loserTime ms)';
   }
 }

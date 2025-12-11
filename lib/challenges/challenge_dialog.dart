@@ -33,6 +33,18 @@ class ChallengeDialog extends StatelessWidget {
               alignment: Alignment.centerLeft,
             ),
           ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop(GameType.reactionTest);
+            },
+            icon: const Icon(Icons.flash_on),
+            label: const Text('Reaction Test'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+              alignment: Alignment.centerLeft,
+            ),
+          ),
         ],
       ),
       actions: [

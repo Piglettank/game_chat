@@ -98,6 +98,8 @@ class ChallengeNotification extends StatelessWidget {
     switch (gameType) {
       case GameType.rockPaperScissors:
         return 'Rock Paper Scissors';
+      case GameType.reactionTest:
+        return 'Reaction Test';
     }
   }
 }

@@ -54,6 +54,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with ChatMixin {
     final isPhoneSize = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Row(
         children: [
           // Leaderboard section (left half)

@@ -161,6 +161,15 @@ class LeaderboardWidgetState extends State<LeaderboardWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // When in edit mode, don't rebuild on stream updates to prevent losing focus
+    if (widget.isEditMode && _editEntries.isNotEmpty) {
+      return Column(
+        children: [
+          Expanded(child: _buildEditMode(context)),
+        ],
+      );
+    }
+
     return StreamBuilder<List<LeaderboardEntry>>(
       stream: _service.getLeaderboard(),
       builder: (context, snapshot) {
@@ -248,6 +257,7 @@ class LeaderboardWidgetState extends State<LeaderboardWidget> {
                   itemBuilder: (context, index) {
                     final entry = displayEntries[index];
                     return _EditableLeaderboardEntryWidget(
+                      key: ValueKey('editable-entry-${entry.id}'),
                       entry: entry,
                       nameController: _nameControllers[entry.id]!,
                       scoreController: _scoreControllers[entry.id]!,
@@ -355,6 +365,7 @@ class _EditableLeaderboardEntryWidget extends StatelessWidget {
   final VoidCallback onDelete;
 
   const _EditableLeaderboardEntryWidget({
+    super.key,
     required this.entry,
     required this.nameController,
     required this.scoreController,
@@ -378,6 +389,7 @@ class _EditableLeaderboardEntryWidget extends StatelessWidget {
         children: [
           Expanded(
             child: TextField(
+              key: ValueKey('name-${entry.id}'),
               controller: nameController,
               decoration: const InputDecoration(
                 labelText: 'Name',
@@ -394,6 +406,7 @@ class _EditableLeaderboardEntryWidget extends StatelessWidget {
           SizedBox(
             width: 100,
             child: TextField(
+              key: ValueKey('score-${entry.id}'),
               controller: scoreController,
               decoration: const InputDecoration(
                 labelText: 'Score',

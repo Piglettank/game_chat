@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../services/user_storage.dart';
 import 'welcome_screen.dart';
 
@@ -44,22 +46,44 @@ class _EditNameScreenState extends State<EditNameScreen> {
       _isSubmitting = true;
     });
 
-    final userName = _nameController.text.trim();
-    
-    // Preserve the existing userId, only update the name
-    await UserStorage.saveUser(widget.userId, userName);
+    try {
+      final userName = _nameController.text.trim();
+      
+      // Preserve the existing userId, only update the name
+      await UserStorage.saveUser(widget.userId, userName);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => WelcomeScreen(
-          chatId: widget.chatId,
-          userId: widget.userId,
-          userName: userName,
+      // Navigate directly to welcome screen with updated user data
+      // This bypasses the route builder check which might not update
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => WelcomeScreen(
+            chatId: widget.chatId,
+            userId: widget.userId,
+            userName: userName,
+          ),
         ),
-      ),
-    );
+      );
+      
+      // Update URL on web
+      if (mounted) {
+        try {
+          final router = GoRouter.of(context);
+          router.go('/');
+        } catch (e) {
+          debugPrint('Failed to update URL: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error updating name: $e');
+      // Reset submitting state on error
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   @override

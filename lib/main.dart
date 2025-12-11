@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:go_router/go_router.dart';
 import 'firebase_options.dart';
 import 'core/welcome_screen.dart';
 import 'core/name_entry_screen.dart';
+import 'core/edit_name_screen.dart';
+import 'chat/chat_screen.dart';
+import 'chat/chat_only_screen.dart';
+import 'tournament/bracket_list_screen.dart';
+import 'tournament/tournament_bracket.dart';
 import 'services/user_storage.dart';
 
 void main() async {
@@ -19,28 +25,81 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static const String _chatId = 'tournament-chat';
+
+  static final GoRouter _router = GoRouter(
+    initialLocation: '/',
+    debugLogDiagnostics: true,
+    routes: [
+      GoRoute(
+        path: '/name-entry',
+        name: 'name-entry',
+        builder: (context, state) => NameEntryScreen(chatId: _chatId),
+      ),
+      // More specific routes must come before less specific ones
+      GoRoute(
+        path: '/chat',
+        name: 'chat',
+        builder: (context, state) {
+          final hasStoredUser = UserStorage.hasUserData();
+          return ChatScreen(
+            chatId: _chatId,
+            userId: hasStoredUser ? UserStorage.getUserId() : '',
+            userName: hasStoredUser ? UserStorage.getUserName()! : '',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/chat-only',
+        name: 'chat-only',
+        builder: (context, state) {
+          final hasStoredUser = UserStorage.hasUserData();
+          return ChatOnlyScreen(
+            chatId: _chatId,
+            userId: hasStoredUser ? UserStorage.getUserId() : '',
+            userName: hasStoredUser ? UserStorage.getUserName()! : '',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/tournament',
+        name: 'tournament',
+        builder: (context, state) => const BracketListScreen(),
+      ),
+      GoRoute(
+        path: '/edit-name',
+        name: 'edit-name',
+        builder: (context, state) {
+          final hasStoredUser = UserStorage.hasUserData();
+          return EditNameScreen(
+            chatId: _chatId,
+            userId: hasStoredUser ? UserStorage.getUserId() : '',
+            userName: hasStoredUser ? UserStorage.getUserName()! : '',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/',
+        name: 'home',
+        builder: (context, state) {
+          final hasStoredUser = UserStorage.hasUserData();
+          if (hasStoredUser) {
+            return WelcomeScreen(
+              chatId: _chatId,
+              userId: UserStorage.getUserId(),
+              userName: UserStorage.getUserName()!,
+            );
+          } else {
+            return NameEntryScreen(chatId: _chatId);
+          }
+        },
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
-    // Check if user data exists in localStorage
-    final hasStoredUser = UserStorage.hasUserData();
-    const chatId = 'tournament-chat';
-
-    Widget homeWidget;
-    if (hasStoredUser) {
-      // Use stored user data
-      final userId = UserStorage.getUserId();
-      final userName = UserStorage.getUserName()!;
-      homeWidget = WelcomeScreen(
-        chatId: chatId,
-        userId: userId,
-        userName: userName,
-      );
-    } else {
-      // Show name entry screen
-      homeWidget = NameEntryScreen(chatId: chatId);
-    }
-
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Game Night',
       theme: ThemeData.dark(
         useMaterial3: true,
@@ -65,7 +124,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: homeWidget,
+      routerConfig: _router,
       debugShowCheckedModeBanner: false,
     );
   }

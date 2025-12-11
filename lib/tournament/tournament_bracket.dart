@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'tournament.dart' hide Offset;
 import 'saved_tournament_bracket.dart';
 import 'tournament_bracket_service.dart';
 import 'bracket_canvas.dart';
-import 'toolbar.dart';
+import '../core/app_header.dart';
+import '../core/toolbar_button.dart';
+import '../core/navigation_helper.dart';
 import '../core/tab_title.dart';
 
 class TournamentBracket extends StatefulWidget {
@@ -130,6 +133,7 @@ class _TournamentBracketState extends State<TournamentBracket> {
     });
   }
 
+
   void _addHeat() {
     setState(() {
       final heatNumber = _tournament.heats.length + 1;
@@ -181,7 +185,10 @@ class _TournamentBracketState extends State<TournamentBracket> {
           _isEditMode = false; // Exit edit mode after saving
         });
         _startStreamingBracket(bracketId);
+        // Navigate to the new bracket URL
         if (mounted) {
+          context.go('/bracket/$bracketId');
+          updateUrlWeb('/bracket/$bracketId');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('Bracket saved successfully!'),
@@ -248,7 +255,7 @@ class _TournamentBracketState extends State<TournamentBracket> {
       try {
         await _service.deleteBracket(_currentBracketId!);
         if (mounted) {
-          Navigator.of(context).pop();
+          context.go('/brackets');
         }
       } catch (e) {
         if (mounted) {
@@ -265,7 +272,7 @@ class _TournamentBracketState extends State<TournamentBracket> {
   }
 
   void _goBack() {
-    Navigator.of(context).pop();
+    context.go('/brackets');
   }
 
   @override
@@ -288,23 +295,54 @@ class _TournamentBracketState extends State<TournamentBracket> {
       );
     }
 
+    // Build action buttons for AppHeader
+    final actions = <Widget>[];
+    if (_isEditMode) {
+      actions.addAll([
+        ToolbarButton(
+          icon: Icons.add_box_outlined,
+          label: 'Add Heat',
+          onTap: _addHeat,
+          isPrimary: true,
+        ),
+        const SizedBox(width: 12),
+        ToolbarButton(
+          icon: Icons.save_outlined,
+          label: 'Save',
+          onTap: _saveTournament,
+        ),
+        if (_currentBracketId != null) ...[
+          const SizedBox(width: 12),
+          ToolbarButton(
+            icon: Icons.delete_outline,
+            label: 'Delete',
+            onTap: _deleteBracket,
+            isDelete: true,
+          ),
+        ],
+      ]);
+    } else if (_currentBracketId != null) {
+      actions.add(
+        ToolbarButton(
+          icon: Icons.edit_outlined,
+          label: 'Edit',
+          onTap: _enterEditMode,
+          isPrimary: true,
+        ),
+      );
+    }
+
     return Scaffold(
       body: Column(
         children: [
-          // Toolbar
-          BracketToolbar(
+          // Header with back button
+          AppHeader(
+            icon: Icons.account_tree_outlined,
             title: _tournament.title,
-            onTitleChanged: _onTitleChanged,
-            onAddHeat: _isEditMode ? _addHeat : null,
-            onSave: _isEditMode ? _saveTournament : null,
-            onEdit: !_isEditMode && _currentBracketId != null
-                ? _enterEditMode
-                : null,
             onBack: _goBack,
-            onDelete: _isEditMode && _currentBracketId != null
-                ? _deleteBracket
-                : null,
-            isEditMode: _isEditMode,
+            actions: actions.isNotEmpty ? actions : null,
+            isEditable: _isEditMode,
+            onTitleChanged: _isEditMode ? _onTitleChanged : null,
           ),
           // Canvas
           Expanded(

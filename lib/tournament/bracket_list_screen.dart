@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'saved_tournament_bracket.dart';
 import 'tournament_bracket_service.dart';
-import 'tournament_bracket.dart';
 import 'bracket_thumbnail.dart';
 import '../core/app_header.dart';
 import '../core/toolbar_button.dart';
+import '../core/navigation_helper.dart';
 
 class BracketListScreen extends StatefulWidget {
   const BracketListScreen({super.key});
@@ -85,30 +86,24 @@ class _BracketListScreenState extends State<BracketListScreen> {
   }
 
   void _createNewBracket() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const TournamentBracket()));
+    navigateWithUrlUpdate(context, '/bracket');
   }
 
   void _editBracket(SavedTournamentBracket bracket) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => TournamentBracket(
-          bracketId: bracket.id,
-          initialTournament: bracket.tournament,
-        ),
-      ),
+    // Pass initial tournament data via extra and update URL
+    updateUrlWeb('/bracket/${bracket.id}');
+    context.push(
+      '/bracket/${bracket.id}',
+      extra: {'initialTournament': bracket.tournament},
     );
   }
 
   void _viewBracket(SavedTournamentBracket bracket) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => TournamentBracket(
-          bracketId: bracket.id,
-          initialTournament: bracket.tournament,
-        ),
-      ),
+    // Pass initial tournament data via extra and update URL
+    updateUrlWeb('/bracket/${bracket.id}');
+    context.push(
+      '/bracket/${bracket.id}',
+      extra: {'initialTournament': bracket.tournament},
     );
   }
 

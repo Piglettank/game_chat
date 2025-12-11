@@ -95,7 +95,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         'Welcome to Game Night',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.displayMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: MediaQuery.of(context).size.width < 600 ? 32 : null,
+                            ),
                       ),
                       const SizedBox(height: 48.0),
                       SizedBox(

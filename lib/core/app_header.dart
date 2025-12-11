@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
-class AppHeader extends StatelessWidget {
+class AppHeader extends StatefulWidget {
   final IconData icon;
   final String title;
   final List<Widget>? actions;
   final VoidCallback? onBack;
+  final bool isEditable;
+  final ValueChanged<String>? onTitleChanged;
 
   const AppHeader({
     super.key,
@@ -12,13 +14,53 @@ class AppHeader extends StatelessWidget {
     required this.title,
     this.actions,
     this.onBack,
+    this.isEditable = false,
+    this.onTitleChanged,
   });
 
   @override
+  State<AppHeader> createState() => _AppHeaderState();
+}
+
+class _AppHeaderState extends State<AppHeader> {
+  late TextEditingController _titleController;
+  bool _isEditingTitle = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.title);
+  }
+
+  @override
+  void didUpdateWidget(AppHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title != widget.title && !_isEditingTitle) {
+      _titleController.text = widget.title;
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final iconSize = isMobile ? 18.0 : 22.0;
+    final iconContainerSize = isMobile ? 32.0 : 40.0;
+    final fontSize = isMobile ? 16.0 : 20.0;
+    final headerHeight = isMobile ? 56.0 : 64.0;
+    final horizontalPadding = isMobile ? 16.0 : 20.0;
+    final spacing = isMobile ? 12.0 : 16.0;
+    final backButtonSize = isMobile ? 28.0 : 32.0;
+    final backIconSize = isMobile ? 16.0 : 18.0;
+
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      height: headerHeight,
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       decoration: BoxDecoration(
         color: const Color(0xFF151525),
         border: Border(
@@ -35,29 +77,29 @@ class AppHeader extends StatelessWidget {
       child: Row(
         children: [
           // Back button
-          if (onBack != null) ...[
+          if (widget.onBack != null) ...[
             GestureDetector(
-              onTap: onBack,
+              onTap: widget.onBack,
               child: Container(
-                width: 32,
-                height: 32,
+                width: backButtonSize,
+                height: backButtonSize,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   color: Colors.white.withValues(alpha: 0.1),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back,
                   color: Colors.white,
-                  size: 18,
+                  size: backIconSize,
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: spacing),
           ],
           // Logo / App icon
           Container(
-            width: 40,
-            height: 40,
+            width: iconContainerSize,
+            height: iconContainerSize,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               gradient: const LinearGradient(
@@ -66,27 +108,92 @@ class AppHeader extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 22,
-            ),
+            child: Icon(widget.icon, color: Colors.white, size: iconSize),
           ),
-          const SizedBox(width: 16),
-          // Title
+          SizedBox(width: spacing),
+          // Title (editable if enabled)
           Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: widget.isEditable && widget.onTitleChanged != null
+                ? (_isEditingTitle
+                      ? TextField(
+                          controller: _titleController,
+                          autofocus: true,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 12,
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFF1a1a2e),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF00bcd4),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF00bcd4),
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                          onSubmitted: (value) {
+                            widget.onTitleChanged!(value);
+                            setState(() {
+                              _isEditingTitle = false;
+                            });
+                          },
+                        )
+                      : MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onDoubleTap: () {
+                              setState(() {
+                                _isEditingTitle = true;
+                              });
+                            },
+
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  widget.title,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: fontSize,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.edit,
+                                  size: 16,
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ))
+                : Text(
+                    widget.title,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
           ),
-          if (actions != null) ...[
-            const SizedBox(width: 16),
-            ...actions!,
+          if (widget.actions != null) ...[
+            SizedBox(width: spacing),
+            ...widget.actions!,
           ],
         ],
       ),

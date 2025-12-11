@@ -105,61 +105,85 @@ class BackgroundAnimationSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<BackgroundAnimationType>(
-      icon: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: const Color(0xFF9c27b0).withValues(alpha: 0.2),
-          border: Border.all(
-            color: const Color(0xFF9c27b0),
-            width: 1,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTapDown: (details) {
+          // Show popup menu on tap, positioned relative to the button
+          final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox != null) {
+            final size = renderBox.size;
+            final offset = renderBox.localToGlobal(Offset.zero);
+            
+            showMenu<BackgroundAnimationType>(
+              context: context,
+              position: RelativeRect.fromLTRB(
+                offset.dx + size.width - 200,
+                offset.dy + size.height + 8,
+                MediaQuery.of(context).size.width - offset.dx - size.width,
+                MediaQuery.of(context).size.height - offset.dy - size.height - 8,
+              ),
+              items: BackgroundAnimationType.values.map((type) {
+                return PopupMenuItem<BackgroundAnimationType>(
+                  value: type,
+                  child: Row(
+                    children: [
+                      Icon(
+                        type.icon,
+                        size: 20,
+                        color: type == currentType
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        type.label,
+                        style: TextStyle(
+                          fontWeight:
+                              type == currentType ? FontWeight.bold : FontWeight.normal,
+                          color: type == currentType
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                      ),
+                      if (type == currentType) ...[
+                        const Spacer(),
+                        Icon(
+                          Icons.check,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
+            ).then((selectedType) {
+              if (selectedType != null) {
+                onChanged(selectedType);
+              }
+            });
+          }
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: const Color(0xFF9c27b0).withValues(alpha: 0.2),
+            border: Border.all(
+              color: const Color(0xFF9c27b0),
+              width: 1,
+            ),
           ),
-        ),
-        child: Icon(
-          currentType.icon,
-          size: 20,
-          color: const Color(0xFF9c27b0),
+          child: Icon(
+            currentType.icon,
+            size: 20,
+            color: const Color(0xFF9c27b0),
+          ),
         ),
       ),
-      tooltip: 'Change Background',
-      onSelected: onChanged,
-      itemBuilder: (context) => BackgroundAnimationType.values.map((type) {
-        return PopupMenuItem<BackgroundAnimationType>(
-          value: type,
-          child: Row(
-            children: [
-              Icon(
-                type.icon,
-                size: 20,
-                color: type == currentType
-                    ? Theme.of(context).colorScheme.primary
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                type.label,
-                style: TextStyle(
-                  fontWeight:
-                      type == currentType ? FontWeight.bold : FontWeight.normal,
-                  color: type == currentType
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                ),
-              ),
-              if (type == currentType) ...[
-                const Spacer(),
-                Icon(
-                  Icons.check,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ],
-            ],
-          ),
-        );
-      }).toList(),
     );
   }
 }

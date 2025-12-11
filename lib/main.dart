@@ -8,6 +8,8 @@ import 'core/edit_name_screen.dart';
 import 'chat/chat_screen.dart' show LeaderboardScreen;
 import 'chat/chat_only_screen.dart' show ChatScreen;
 import 'tournament/bracket_list_screen.dart';
+import 'tournament/tournament_bracket.dart';
+import 'tournament/tournament.dart';
 import 'services/user_storage.dart';
 
 void main() async {
@@ -64,6 +66,25 @@ class MyApp extends StatelessWidget {
         path: '/brackets',
         name: 'brackets',
         builder: (context, state) => const BracketListScreen(),
+      ),
+      GoRoute(
+        path: '/bracket/:id',
+        name: 'bracket',
+        builder: (context, state) {
+          final bracketId = state.pathParameters['id']!;
+          // Check if there's initial tournament data in extra
+          final extra = state.extra as Map<String, dynamic>?;
+          final initialTournament = extra?['initialTournament'] as Tournament?;
+          return TournamentBracket(
+            bracketId: bracketId,
+            initialTournament: initialTournament,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/bracket',
+        name: 'bracket-new',
+        builder: (context, state) => const TournamentBracket(),
       ),
       GoRoute(
         path: '/edit-name',

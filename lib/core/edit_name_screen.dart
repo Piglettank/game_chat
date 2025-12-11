@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../services/user_storage.dart';
+import 'navigation_helper.dart';
 import 'welcome_screen.dart';
 
 class EditNameScreen extends StatefulWidget {
@@ -67,14 +67,7 @@ class _EditNameScreenState extends State<EditNameScreen> {
       );
       
       // Update URL on web
-      if (mounted) {
-        try {
-          final router = GoRouter.of(context);
-          router.go('/');
-        } catch (e) {
-          debugPrint('Failed to update URL: $e');
-        }
-      }
+      updateUrlWeb('/');
     } catch (e) {
       debugPrint('Error updating name: $e');
       // Reset submitting state on error

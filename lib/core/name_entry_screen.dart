@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/user_storage.dart';
 import 'animated_background.dart';
+import 'navigation_helper.dart';
 import 'welcome_screen.dart';
 
 class NameEntryScreen extends StatefulWidget {
@@ -113,14 +113,7 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
       );
       
       // Update URL on web
-      if (kIsWeb) {
-        try {
-          final router = GoRouter.of(context);
-          router.go('/');
-        } catch (e) {
-          debugPrint('Failed to update URL: $e');
-        }
-      }
+      updateUrlWeb('/');
     } catch (e) {
       debugPrint('Error submitting name: $e');
       // Reset submitting state on error

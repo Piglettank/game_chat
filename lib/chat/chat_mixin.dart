@@ -12,7 +12,6 @@ import '../challenges/reaction_test_game.dart';
 import '../challenges/find_the_goat_game.dart';
 import '../core/app_header.dart';
 import '../core/toolbar_button.dart';
-import '../core/tab_title.dart';
 
 mixin ChatMixin<T extends StatefulWidget> on State<T> {
   final TextEditingController messageController = TextEditingController();
@@ -102,7 +101,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
         .listen((challenges) {
           if (mounted) {
             setState(() {
-              this.sentChallenges = challenges;
+              sentChallenges = challenges;
             });
           }
         });
@@ -879,7 +878,6 @@ class _ActiveUserWidget extends StatelessWidget {
   final bool isCurrentUser;
   final bool isLastCurrentUser;
   final bool hasDividerAfter;
-  final VoidCallback? onTap;
   final VoidCallback? onChallenge;
   final TextEditingController? messageController;
   final FocusNode? messageFocusNode;
@@ -890,7 +888,6 @@ class _ActiveUserWidget extends StatelessWidget {
     required this.isCurrentUser,
     required this.isLastCurrentUser,
     this.hasDividerAfter = false,
-    this.onTap,
     this.onChallenge,
     this.messageController,
     this.messageFocusNode,

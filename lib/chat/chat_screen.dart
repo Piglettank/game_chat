@@ -5,12 +5,12 @@ import '../core/app_header.dart';
 import '../core/toolbar_button.dart';
 import '../core/tab_title.dart';
 
-class ChatScreen extends StatefulWidget {
+class LeaderboardScreen extends StatefulWidget {
   final String chatId;
   final String userId;
   final String userName;
 
-  const ChatScreen({
+  const LeaderboardScreen({
     super.key,
     required this.chatId,
     required this.userId,
@@ -18,10 +18,10 @@ class ChatScreen extends StatefulWidget {
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<LeaderboardScreen> createState() => _LeaderboardScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> with ChatMixin {
+class _LeaderboardScreenState extends State<LeaderboardScreen> with ChatMixin {
   bool _isLeaderboardEditMode = false;
   final GlobalKey<LeaderboardWidgetState> _leaderboardKey =
       GlobalKey<LeaderboardWidgetState>();

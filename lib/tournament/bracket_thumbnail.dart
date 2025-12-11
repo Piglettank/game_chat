@@ -27,7 +27,7 @@ class BracketThumbnail extends StatelessWidget {
         child: Center(
           child: Icon(
             Icons.grid_view_rounded,
-            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             size: 24,
           ),
         ),
@@ -41,7 +41,7 @@ class BracketThumbnail extends StatelessWidget {
         color: const Color(0xFF1a1a2e),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
       child: ClipRRect(
@@ -118,7 +118,7 @@ class _BracketThumbnailPainter extends CustomPainter {
 
   void _drawGrid(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF2a2a3a).withOpacity(0.5)
+      ..color = const Color(0xFF2a2a3a).withValues(alpha: 0.5)
       ..strokeWidth = 0.5;
 
     const gridSize = 10.0;
@@ -190,7 +190,7 @@ class _BracketThumbnailPainter extends CustomPainter {
       // Box border
       final borderPaint = Paint()
         ..color = heat.isFinal
-            ? const Color(0xFFffd700).withOpacity(0.6)
+            ? const Color(0xFFffd700).withValues(alpha: 0.6)
             : const Color(0xFF3a3a4a)
         ..style = PaintingStyle.stroke
         ..strokeWidth = heat.isFinal ? 1.5 : 1;
@@ -232,7 +232,7 @@ class _BracketThumbnailPainter extends CustomPainter {
       const Color(0xFF9c27b0),
       const Color(0xFFffeb3b),
     ];
-    return colors[hash.abs() % colors.length].withOpacity(0.7);
+    return colors[hash.abs() % colors.length].withValues(alpha: 0.7);
   }
 
   @override

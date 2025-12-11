@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../chat/chat_screen.dart';
-import '../chat/chat_only_screen.dart';
-import '../tournament/bracket_list_screen.dart';
 import 'animated_background.dart';
-import 'edit_name_screen.dart';
 import 'navigation_helper.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -107,7 +102,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            navigateWithUrlUpdate(context, '/chat');
+                            navigateWithUrlUpdate(context, '/tournament');
                           },
                           icon: const Icon(Icons.emoji_events),
                           label: const Text('Go to Leaderboard'),
@@ -124,7 +119,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            navigateWithUrlUpdate(context, '/tournament');
+                            navigateWithUrlUpdate(context, '/brackets');
                           },
                           icon: const Icon(Icons.account_tree_outlined),
                           label: const Text('Go to Tournament'),
@@ -141,7 +136,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            navigateWithUrlUpdate(context, '/chat-only');
+                            navigateWithUrlUpdate(context, '/chat');
                           },
                           icon: const Icon(Icons.chat),
                           label: const Text('Go to Chat'),

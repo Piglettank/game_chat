@@ -5,10 +5,9 @@ import 'firebase_options.dart';
 import 'core/welcome_screen.dart';
 import 'core/name_entry_screen.dart';
 import 'core/edit_name_screen.dart';
-import 'chat/chat_screen.dart';
-import 'chat/chat_only_screen.dart';
+import 'chat/chat_screen.dart' show LeaderboardScreen;
+import 'chat/chat_only_screen.dart' show ChatScreen;
 import 'tournament/bracket_list_screen.dart';
-import 'tournament/tournament_bracket.dart';
 import 'services/user_storage.dart';
 
 void main() async {
@@ -50,11 +49,11 @@ class MyApp extends StatelessWidget {
         },
       ),
       GoRoute(
-        path: '/chat-only',
-        name: 'chat-only',
+        path: '/tournament',
+        name: 'tournament',
         builder: (context, state) {
           final hasStoredUser = UserStorage.hasUserData();
-          return ChatOnlyScreen(
+          return LeaderboardScreen(
             chatId: _chatId,
             userId: hasStoredUser ? UserStorage.getUserId() : '',
             userName: hasStoredUser ? UserStorage.getUserName()! : '',
@@ -62,8 +61,8 @@ class MyApp extends StatelessWidget {
         },
       ),
       GoRoute(
-        path: '/tournament',
-        name: 'tournament',
+        path: '/brackets',
+        name: 'brackets',
         builder: (context, state) => const BracketListScreen(),
       ),
       GoRoute(

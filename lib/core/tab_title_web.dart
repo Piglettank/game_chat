@@ -1,5 +1,5 @@
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 
 void setTabTitle(String title) {
-  html.document.title = title;
+  web.document.title = title;
 }

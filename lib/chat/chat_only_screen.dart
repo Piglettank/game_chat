@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'chat_mixin.dart';
 import '../core/tab_title.dart';
 
-class ChatOnlyScreen extends StatefulWidget {
+class ChatScreen extends StatefulWidget {
   final String chatId;
   final String userId;
   final String userName;
 
-  const ChatOnlyScreen({
+  const ChatScreen({
     super.key,
     required this.chatId,
     required this.userId,
@@ -15,10 +15,10 @@ class ChatOnlyScreen extends StatefulWidget {
   });
 
   @override
-  State<ChatOnlyScreen> createState() => _ChatOnlyScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatOnlyScreenState extends State<ChatOnlyScreen> with ChatMixin {
+class _ChatScreenState extends State<ChatScreen> with ChatMixin {
   @override
   String get chatId => widget.chatId;
 

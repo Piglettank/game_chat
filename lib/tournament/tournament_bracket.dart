@@ -9,6 +9,7 @@ import '../core/app_header.dart';
 import '../core/toolbar_button.dart';
 import '../core/navigation_helper.dart';
 import '../core/tab_title.dart';
+import '../chat/chat_notification_widget.dart';
 
 class TournamentBracket extends StatefulWidget {
   final String? bracketId;
@@ -21,6 +22,7 @@ class TournamentBracket extends StatefulWidget {
 }
 
 class _TournamentBracketState extends State<TournamentBracket> {
+  static const String _chatId = 'tournament-chat';
   late Tournament _tournament;
   final TournamentBracketService _service = TournamentBracketService();
   bool _isLoading = false;
@@ -335,28 +337,31 @@ class _TournamentBracketState extends State<TournamentBracket> {
       );
     }
 
-    return Scaffold(
-      body: Column(
-        children: [
-          // Header with back button
-          AppHeader(
-            icon: Icons.account_tree_outlined,
-            title: _tournament.title,
-            onBack: _goBack,
-            actions: actions.isNotEmpty ? actions : null,
-            isEditable: _isEditMode,
-            onTitleChanged: _isEditMode ? _onTitleChanged : null,
-          ),
-          // Canvas
-          Expanded(
-            child: BracketCanvas(
-              tournament: _tournament,
-              onTournamentChanged: _onTournamentChanged,
-              onDeleteHeat: _deleteHeat,
-              isReadOnly: !_isEditMode,
+    return ChatNotificationWidget(
+      chatId: _chatId,
+      child: Scaffold(
+        body: Column(
+          children: [
+            // Header with back button
+            AppHeader(
+              icon: Icons.account_tree_outlined,
+              title: _tournament.title,
+              onBack: _goBack,
+              actions: actions.isNotEmpty ? actions : null,
+              isEditable: _isEditMode,
+              onTitleChanged: _isEditMode ? _onTitleChanged : null,
             ),
-          ),
-        ],
+            // Canvas
+            Expanded(
+              child: BracketCanvas(
+                tournament: _tournament,
+                onTournamentChanged: _onTournamentChanged,
+                onDeleteHeat: _deleteHeat,
+                isReadOnly: !_isEditMode,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

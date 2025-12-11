@@ -6,6 +6,7 @@ import 'bracket_thumbnail.dart';
 import '../core/app_header.dart';
 import '../core/toolbar_button.dart';
 import '../core/navigation_helper.dart';
+import '../chat/chat_notification_widget.dart';
 
 class BracketListScreen extends StatefulWidget {
   const BracketListScreen({super.key});
@@ -15,6 +16,7 @@ class BracketListScreen extends StatefulWidget {
 }
 
 class _BracketListScreenState extends State<BracketListScreen> {
+  static const String _chatId = 'tournament-chat';
   final TournamentBracketService _service = TournamentBracketService();
 
   String _formatTimestamp(DateTime timestamp) {
@@ -109,198 +111,201 @@ class _BracketListScreenState extends State<BracketListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          AppHeader(
-            icon: Icons.emoji_events,
-            title: 'Tournament Brackets',
-            onBack: () => context.pop(),
-          ),
-          Expanded(
-            child: StreamBuilder<List<SavedTournamentBracket>>(
-              stream: _service.getBrackets(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
+    return ChatNotificationWidget(
+      chatId: _chatId,
+      child: Scaffold(
+        body: Column(
+          children: [
+            AppHeader(
+              icon: Icons.emoji_events,
+              title: 'Tournament Brackets',
+              onBack: () => context.pop(),
+            ),
+            Expanded(
+              child: StreamBuilder<List<SavedTournamentBracket>>(
+                stream: _service.getBrackets(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                final brackets = snapshot.data ?? [];
+                  final brackets = snapshot.data ?? [];
 
-                if (brackets.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.emoji_events_outlined,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No brackets yet',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Create your first tournament bracket',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                  if (brackets.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.emoji_events_outlined,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No brackets yet',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Create your first tournament bracket',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: brackets.length,
+                    itemBuilder: (context, index) {
+                      final bracket = brackets[index];
+                      return LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isSmallScreen = constraints.maxWidth < 400;
+
+                          if (isSmallScreen) {
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: InkWell(
+                                onTap: () => _viewBracket(bracket),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        bracket.title,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Updated ${_formatTimestamp(bracket.updatedAt)}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          BracketThumbnail(
+                                            tournament: bracket.tournament,
+                                            width: 100,
+                                            height: 64,
+                                          ),
+                                          const Spacer(),
+                                          ToolbarButton(
+                                            icon: Icons.edit,
+                                            label: 'Edit',
+                                            onTap: () => _editBracket(bracket),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          ToolbarButton(
+                                            icon: Icons.delete,
+                                            label: 'Delete',
+                                            onTap: () => _deleteBracket(bracket),
+                                            isDelete: true,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+                            );
+                          }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: brackets.length,
-                  itemBuilder: (context, index) {
-                    final bracket = brackets[index];
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isSmallScreen = constraints.maxWidth < 400;
-
-                        if (isSmallScreen) {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
-                            child: InkWell(
-                              onTap: () => _viewBracket(bracket),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      bracket.title,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(fontWeight: FontWeight.bold),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Updated ${_formatTimestamp(bracket.updatedAt)}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      children: [
-                                        BracketThumbnail(
-                                          tournament: bracket.tournament,
-                                          width: 100,
-                                          height: 64,
-                                        ),
-                                        const Spacer(),
-                                        ToolbarButton(
-                                          icon: Icons.edit,
-                                          label: 'Edit',
-                                          onTap: () => _editBracket(bracket),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        ToolbarButton(
-                                          icon: Icons.delete,
-                                          label: 'Delete',
-                                          onTap: () => _deleteBracket(bracket),
-                                          isDelete: true,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                            child: ListTile(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ),
-                          );
-                        }
-
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            contentPadding: const EdgeInsets.only(
-                              left: 12,
-                              right: 16,
-                              top: 8,
-                              bottom: 8,
-                            ),
-                            leading: BracketThumbnail(
-                              tournament: bracket.tournament,
-                              width: 100,
-                              height: 64,
-                            ),
-                            title: Text(
-                              bracket.title,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                'Updated ${_formatTimestamp(bracket.updatedAt)}',
+                              contentPadding: const EdgeInsets.only(
+                                left: 12,
+                                right: 16,
+                                top: 8,
+                                bottom: 8,
+                              ),
+                              leading: BracketThumbnail(
+                                tournament: bracket.tournament,
+                                width: 100,
+                                height: 64,
+                              ),
+                              title: Text(
+                                bracket.title,
                                 style: Theme.of(context)
                                     .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ToolbarButton(
-                                  icon: Icons.edit,
-                                  label: 'Edit',
-                                  onTap: () => _editBracket(bracket),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  'Updated ${_formatTimestamp(bracket.updatedAt)}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
                                 ),
-                                const SizedBox(width: 8),
-                                ToolbarButton(
-                                  icon: Icons.delete,
-                                  label: 'Delete',
-                                  onTap: () => _deleteBracket(bracket),
-                                  isDelete: true,
-                                ),
-                              ],
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ToolbarButton(
+                                    icon: Icons.edit,
+                                    label: 'Edit',
+                                    onTap: () => _editBracket(bracket),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ToolbarButton(
+                                    icon: Icons.delete,
+                                    label: 'Delete',
+                                    onTap: () => _deleteBracket(bracket),
+                                    isDelete: true,
+                                  ),
+                                ],
+                              ),
+                              onTap: () => _viewBracket(bracket),
                             ),
-                            onTap: () => _viewBracket(bracket),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                );
-              },
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _createNewBracket,
-        icon: const Icon(Icons.add),
-        label: const Text('New Bracket'),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _createNewBracket,
+          icon: const Icon(Icons.add),
+          label: const Text('New Bracket'),
+        ),
       ),
     );
   }

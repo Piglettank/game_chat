@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'saved_tournament_bracket.dart';
 import 'tournament_bracket_service.dart';
 import 'tournament_bracket.dart';
+import '../core/app_header.dart';
+import '../core/toolbar_button.dart';
 
 class BracketListScreen extends StatefulWidget {
   const BracketListScreen({super.key});
@@ -82,17 +84,15 @@ class _BracketListScreenState extends State<BracketListScreen> {
   }
 
   void _createNewBracket() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const TournamentBracketHome(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const TournamentBracket()));
   }
 
   void _editBracket(SavedTournamentBracket bracket) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => TournamentBracketHome(
+        builder: (context) => TournamentBracket(
           bracketId: bracket.id,
           initialTournament: bracket.tournament,
         ),
@@ -103,7 +103,7 @@ class _BracketListScreenState extends State<BracketListScreen> {
   void _viewBracket(SavedTournamentBracket bracket) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => TournamentBracketHome(
+        builder: (context) => TournamentBracket(
           bracketId: bracket.id,
           initialTournament: bracket.tournament,
         ),
@@ -114,102 +114,113 @@ class _BracketListScreenState extends State<BracketListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tournament Brackets'),
-      ),
-      body: StreamBuilder<List<SavedTournamentBracket>>(
-        stream: _service.getBrackets(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
-          }
+      body: Column(
+        children: [
+          AppHeader(icon: Icons.emoji_events, title: 'Tournament Brackets'),
+          Expanded(
+            child: StreamBuilder<List<SavedTournamentBracket>>(
+              stream: _service.getBrackets(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          final brackets = snapshot.data ?? [];
+                final brackets = snapshot.data ?? [];
 
-          if (brackets.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.emoji_events_outlined,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No brackets yet',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Create your first tournament bracket',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                if (brackets.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.emoji_events_outlined,
+                          size: 64,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: brackets.length,
-            itemBuilder: (context, index) {
-              final bracket = brackets[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  title: Text(
-                    bracket.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                        const SizedBox(height: 16),
+                        Text(
+                          'No brackets yet',
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      'Updated ${_formatTimestamp(bracket.updatedAt)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Create your first tournament bracket',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
                     ),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _editBracket(bracket),
-                        tooltip: 'Edit',
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: brackets.length,
+                  itemBuilder: (context, index) {
+                    final bracket = brackets[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.only(
+                          left: 16,
+                          right: 16,
+                          top: 2,
+                          bottom: 6,
+                        ),
+                        title: Text(
+                          bracket.title,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Updated ${_formatTimestamp(bracket.updatedAt)}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ToolbarButton(
+                              icon: Icons.edit,
+                              label: 'Edit',
+                              onTap: () => _editBracket(bracket),
+                            ),
+                            const SizedBox(width: 8),
+                            ToolbarButton(
+                              icon: Icons.delete,
+                              label: 'Delete',
+                              onTap: () => _deleteBracket(bracket),
+                              isDelete: true,
+                            ),
+                          ],
+                        ),
+                        onTap: () => _viewBracket(bracket),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => _deleteBracket(bracket),
-                        tooltip: 'Delete',
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ],
-                  ),
-                  onTap: () => _viewBracket(bracket),
-                ),
-              );
-            },
-          );
-        },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createNewBracket,

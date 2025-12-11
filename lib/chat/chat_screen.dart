@@ -8,6 +8,9 @@ import '../challenges/challenge_dialog.dart';
 import '../challenges/challenge_notification.dart';
 import '../challenges/rock_paper_scissors_game.dart';
 import '../leaderboard/leaderboard_widget.dart';
+import '../core/app_header.dart';
+import '../core/toolbar_button.dart';
+import '../core/tab_title.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -49,6 +52,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    setTabTitle('Leaderboard');
     _chatService = ChatService(chatId: widget.chatId);
     _joinChat();
     _startHeartbeat();
@@ -121,6 +125,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    setTabTitle('Game Night');
     _heartbeatTimer?.cancel();
     _completionDelayTimer?.cancel();
     _messagesSubscription?.cancel();
@@ -374,32 +379,22 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: Theme.of(context).dividerColor,
-                        width: 1,
-                      ),
+                AppHeader(
+                  icon: Icons.chat,
+                  title: 'Chat',
+                  actions: [
+                    ToolbarButton(
+                      icon: _isUsersMenuOpen
+                          ? Icons.people
+                          : Icons.people_outline,
+                      label: 'Users',
+                      onTap: () {
+                        setState(() {
+                          _isUsersMenuOpen = !_isUsersMenuOpen;
+                        });
+                      },
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.chat,
-                        size: 20,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Chat',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
                 Expanded(
                   child: Row(
@@ -466,29 +461,6 @@ class _ChatScreenState extends State<ChatScreen> {
                                     onChoiceSelected: _makeChoice,
                                   ),
                               ],
-                            ),
-                            Positioned(
-                              top: 8.0,
-                              right: 8.0,
-                              child: IconButton(
-                                icon: Icon(
-                                  _isUsersMenuOpen
-                                      ? Icons.people
-                                      : Icons.people_outline,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isUsersMenuOpen = !_isUsersMenuOpen;
-                                  });
-                                },
-                                tooltip: 'Toggle active users',
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.surface,
-                                  elevation: 2,
-                                ),
-                              ),
                             ),
                           ],
                         ),
@@ -598,13 +570,28 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                       const SizedBox(width: 8.0),
-                      IconButton(
-                        onPressed: _sendMessage,
-                        icon: const Icon(Icons.send),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.all(12.0),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _sendMessage,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: const Color(0xFF00bcd4).withValues(alpha: 0.2),
+                              border: Border.all(
+                                color: const Color(0xFF00bcd4),
+                                width: 1,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.send,
+                              size: 20,
+                              color: Color(0xFF00bcd4),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -622,71 +609,42 @@ class _ChatScreenState extends State<ChatScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: Theme.of(context).dividerColor,
-                width: 1,
+        AppHeader(
+          icon: Icons.emoji_events,
+          title: 'Leaderboard',
+          actions: [
+            if (_isLeaderboardEditMode) ...[
+              ToolbarButton(
+                icon: Icons.cancel,
+                label: 'Cancel',
+                onTap: () {
+                  _leaderboardKey.currentState?.cancelEdit();
+                  setState(() {
+                    _isLeaderboardEditMode = false;
+                  });
+                },
               ),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.emoji_events,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
+              const SizedBox(width: 12),
+              ToolbarButton(
+                icon: Icons.save,
+                label: 'Save',
+                onTap: () {
+                  _leaderboardKey.currentState?.saveLeaderboard();
+                },
+                isPrimary: true,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Leaderboard',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+            ] else
+              ToolbarButton(
+                icon: Icons.edit,
+                label: 'Edit',
+                onTap: () {
+                  setState(() {
+                    _isLeaderboardEditMode = true;
+                  });
+                },
+                isPrimary: true,
               ),
-              const Spacer(),
-              if (_isLeaderboardEditMode) ...[
-                IconButton(
-                  icon: const Icon(Icons.cancel, size: 20),
-                  onPressed: () {
-                    _leaderboardKey.currentState?.cancelEdit();
-                    setState(() {
-                      _isLeaderboardEditMode = false;
-                    });
-                  },
-                  tooltip: 'Cancel editing',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  iconSize: 20,
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(Icons.save, size: 20),
-                  onPressed: () {
-                    _leaderboardKey.currentState?.saveLeaderboard();
-                  },
-                  tooltip: 'Save leaderboard',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  iconSize: 20,
-                ),
-              ] else
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () {
-                    setState(() {
-                      _isLeaderboardEditMode = true;
-                    });
-                  },
-                  tooltip: 'Edit leaderboard',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  iconSize: 20,
-                ),
-            ],
-          ),
+          ],
         ),
         LeaderboardWidget(
           key: _leaderboardKey,

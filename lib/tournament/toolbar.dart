@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/toolbar_button.dart';
 
 class BracketToolbar extends StatefulWidget {
   final String title;
@@ -164,7 +165,7 @@ class _BracketToolbarState extends State<BracketToolbar> {
 
           // Action buttons
           if (widget.onBack != null) ...[
-            _ToolbarButton(
+            ToolbarButton(
               icon: Icons.arrow_back,
               label: 'Back',
               onTap: widget.onBack!,
@@ -173,21 +174,21 @@ class _BracketToolbarState extends State<BracketToolbar> {
           ],
           if (widget.isEditMode) ...[
             // Edit mode buttons
-            _ToolbarButton(
+            ToolbarButton(
               icon: Icons.add_box_outlined,
               label: 'Add Heat',
               onTap: widget.onAddHeat ?? () {},
               isPrimary: true,
             ),
             const SizedBox(width: 12),
-            _ToolbarButton(
+            ToolbarButton(
               icon: Icons.save_outlined,
               label: 'Save',
               onTap: widget.onSave ?? () {},
             ),
             if (widget.onDelete != null) ...[
               const SizedBox(width: 12),
-              _ToolbarButton(
+              ToolbarButton(
                 icon: Icons.delete_outline,
                 label: 'Delete',
                 onTap: widget.onDelete!,
@@ -196,7 +197,7 @@ class _BracketToolbarState extends State<BracketToolbar> {
             ],
           ] else if (widget.onEdit != null) ...[
             // View mode - show Edit button
-            _ToolbarButton(
+            ToolbarButton(
               icon: Icons.edit_outlined,
               label: 'Edit',
               onTap: widget.onEdit!,
@@ -209,75 +210,3 @@ class _BracketToolbarState extends State<BracketToolbar> {
   }
 }
 
-class _ToolbarButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool isPrimary;
-  final bool isDelete;
-
-  const _ToolbarButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.isPrimary = false,
-    this.isDelete = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            color: isPrimary
-                ? const Color(0xFF00bcd4).withValues(alpha: 0.2)
-                : isDelete
-                    ? const Color(0xFFff6b35).withValues(alpha: 0.2)
-                    : const Color(0xFF2a2a3a),
-            border: Border.all(
-              color: isPrimary
-                  ? const Color(0xFF00bcd4)
-                  : isDelete
-                      ? const Color(0xFFff6b35)
-                      : const Color(0xFF3a3a4a),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: isPrimary
-                    ? const Color(0xFF00bcd4)
-                    : isDelete
-                        ? const Color(0xFFff6b35)
-                        : Colors.white70,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isPrimary
-                      ? const Color(0xFF00bcd4)
-                      : isDelete
-                          ? const Color(0xFFff6b35)
-                          : Colors.white70,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

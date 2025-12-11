@@ -5,31 +5,19 @@ import 'saved_tournament_bracket.dart';
 import 'tournament_bracket_service.dart';
 import 'bracket_canvas.dart';
 import 'toolbar.dart';
+import '../core/tab_title.dart';
 
-class TournamentBracket extends StatelessWidget {
-  const TournamentBracket({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return TournamentBracketHome();
-  }
-}
-
-class TournamentBracketHome extends StatefulWidget {
+class TournamentBracket extends StatefulWidget {
   final String? bracketId;
   final Tournament? initialTournament;
 
-  const TournamentBracketHome({
-    super.key,
-    this.bracketId,
-    this.initialTournament,
-  });
+  const TournamentBracket({super.key, this.bracketId, this.initialTournament});
 
   @override
-  State<TournamentBracketHome> createState() => _TournamentBracketHomeState();
+  State<TournamentBracket> createState() => _TournamentBracketState();
 }
 
-class _TournamentBracketHomeState extends State<TournamentBracketHome> {
+class _TournamentBracketState extends State<TournamentBracket> {
   late Tournament _tournament;
   final TournamentBracketService _service = TournamentBracketService();
   bool _isLoading = false;
@@ -43,6 +31,7 @@ class _TournamentBracketHomeState extends State<TournamentBracketHome> {
     if (widget.initialTournament != null) {
       _tournament = widget.initialTournament!;
       _currentBracketId = widget.bracketId;
+      setTabTitle(_tournament.title);
       // Start in view mode if loading existing bracket
       _isEditMode = false;
       if (widget.bracketId != null) {
@@ -52,6 +41,7 @@ class _TournamentBracketHomeState extends State<TournamentBracketHome> {
       _loadBracket(widget.bracketId!);
     } else {
       _tournament = Tournament(title: 'New Tournament');
+      setTabTitle(_tournament.title);
       // New brackets start in edit mode
       _isEditMode = true;
     }
@@ -59,27 +49,31 @@ class _TournamentBracketHomeState extends State<TournamentBracketHome> {
 
   @override
   void dispose() {
+    setTabTitle('Game Night');
     _bracketSubscription?.cancel();
     super.dispose();
   }
 
   void _startStreamingBracket(String bracketId) {
     _bracketSubscription?.cancel();
-    _bracketSubscription = _service.streamBracket(bracketId).listen(
-      (bracket) {
-        if (bracket != null && mounted && !_isEditMode) {
-          // Only update if not in edit mode (to avoid conflicts)
-          setState(() {
-            _tournament = bracket.tournament;
-          });
-        }
-      },
-      onError: (error) {
-        if (mounted) {
-          debugPrint('Error streaming bracket: $error');
-        }
-      },
-    );
+    _bracketSubscription = _service
+        .streamBracket(bracketId)
+        .listen(
+          (bracket) {
+            if (bracket != null && mounted && !_isEditMode) {
+              // Only update if not in edit mode (to avoid conflicts)
+              setState(() {
+                _tournament = bracket.tournament;
+                setTabTitle(_tournament.title);
+              });
+            }
+          },
+          onError: (error) {
+            if (mounted) {
+              debugPrint('Error streaming bracket: $error');
+            }
+          },
+        );
   }
 
   Future<void> _loadBracket(String bracketId) async {
@@ -96,6 +90,7 @@ class _TournamentBracketHomeState extends State<TournamentBracketHome> {
           _isLoading = false;
           _isEditMode = false; // Start in view mode
         });
+        setTabTitle(_tournament.title);
         _startStreamingBracket(bracketId);
       } else if (mounted) {
         setState(() {
@@ -124,7 +119,6 @@ class _TournamentBracketHomeState extends State<TournamentBracketHome> {
     }
   }
 
-
   void _onTournamentChanged() {
     setState(() {});
   }
@@ -132,6 +126,7 @@ class _TournamentBracketHomeState extends State<TournamentBracketHome> {
   void _onTitleChanged(String newTitle) {
     setState(() {
       _tournament.title = newTitle;
+      setTabTitle(newTitle);
     });
   }
 
@@ -230,7 +225,9 @@ class _TournamentBracketHomeState extends State<TournamentBracketHome> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Bracket'),
-        content: Text('Are you sure you want to delete "${_tournament.title}"?'),
+        content: Text(
+          'Are you sure you want to delete "${_tournament.title}"?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -300,9 +297,13 @@ class _TournamentBracketHomeState extends State<TournamentBracketHome> {
             onTitleChanged: _onTitleChanged,
             onAddHeat: _isEditMode ? _addHeat : null,
             onSave: _isEditMode ? _saveTournament : null,
-            onEdit: !_isEditMode && _currentBracketId != null ? _enterEditMode : null,
+            onEdit: !_isEditMode && _currentBracketId != null
+                ? _enterEditMode
+                : null,
             onBack: _goBack,
-            onDelete: _isEditMode && _currentBracketId != null ? _deleteBracket : null,
+            onDelete: _isEditMode && _currentBracketId != null
+                ? _deleteBracket
+                : null,
             isEditMode: _isEditMode,
           ),
           // Canvas

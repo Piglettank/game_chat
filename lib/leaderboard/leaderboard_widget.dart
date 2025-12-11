@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'leaderboard_entry.dart';
 import 'leaderboard_service.dart';
+import '../core/toolbar_button.dart';
 
 class LeaderboardWidget extends StatefulWidget {
   final bool isEditMode;
@@ -303,11 +304,19 @@ class _LeaderboardEntryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isEvenRank = rank % 2 == 0;
+    final baseColor = Theme.of(context).colorScheme.surfaceContainerHighest;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: isEvenRank
+            ? Color.lerp(
+                baseColor,
+                Colors.black,
+                0.15,
+              )
+            : baseColor,
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Row(
@@ -395,11 +404,11 @@ class _EditableLeaderboardEntryWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: onDelete,
-            color: Theme.of(context).colorScheme.error,
-            tooltip: 'Remove participant',
+          ToolbarButton(
+            icon: Icons.delete,
+            label: 'Delete',
+            onTap: onDelete,
+            isDelete: true,
           ),
         ],
       ),

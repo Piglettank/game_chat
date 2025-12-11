@@ -399,12 +399,13 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
     }
   }
 
-  Widget buildChatSection(BuildContext context) {
+  Widget buildChatSection(BuildContext context, {bool showBackButton = false}) {
     return Column(
       children: [
         AppHeader(
           icon: Icons.chat,
           title: 'Chat',
+          onBack: showBackButton ? () => Navigator.of(context).pop() : null,
           actions: [
             ToolbarButton(
               icon: isUsersMenuOpen

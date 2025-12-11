@@ -85,6 +85,7 @@ class _ChatScreenState extends State<ChatScreen> with ChatMixin {
         AppHeader(
           icon: Icons.emoji_events,
           title: 'Leaderboard',
+          onBack: () => Navigator.of(context).pop(),
           actions: [
             if (_isLeaderboardEditMode) ...[
               ToolbarButton(

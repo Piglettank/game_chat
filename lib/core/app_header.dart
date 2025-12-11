@@ -4,12 +4,14 @@ class AppHeader extends StatelessWidget {
   final IconData icon;
   final String title;
   final List<Widget>? actions;
+  final VoidCallback? onBack;
 
   const AppHeader({
     super.key,
     required this.icon,
     required this.title,
     this.actions,
+    this.onBack,
   });
 
   @override
@@ -32,6 +34,26 @@ class AppHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // Back button
+          if (onBack != null) ...[
+            GestureDetector(
+              onTap: onBack,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
           // Logo / App icon
           Container(
             width: 40,

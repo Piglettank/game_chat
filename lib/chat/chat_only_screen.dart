@@ -45,7 +45,7 @@ class _ChatOnlyScreenState extends State<ChatOnlyScreen> with ChatMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: buildChatSection(context),
+      body: buildChatSection(context, showBackButton: true),
     );
   }
 }

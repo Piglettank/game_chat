@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'challenge.dart';
 
 enum ReactionTestState {
-  waiting,
+  notStarted,
   ready,
   tooEarly,
   active,
@@ -28,7 +28,7 @@ class ReactionTestGame extends StatefulWidget {
 }
 
 class _ReactionTestGameState extends State<ReactionTestGame> {
-  ReactionTestState _state = ReactionTestState.waiting;
+  ReactionTestState _state = ReactionTestState.notStarted;
   Timer? _delayTimer;
   DateTime? _greenStartTime;
   int? _reactionTimeMs;
@@ -69,20 +69,14 @@ class _ReactionTestGameState extends State<ReactionTestGame> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    if (!hasMadeChoice) {
-      _startGame();
-    }
-  }
-
-  @override
   void dispose() {
     _delayTimer?.cancel();
     super.dispose();
   }
 
   void _startGame() {
+    _delayTimer?.cancel();
+    
     setState(() {
       _state = ReactionTestState.ready;
       _reactionTimeMs = null;
@@ -110,7 +104,7 @@ class _ReactionTestGameState extends State<ReactionTestGame> {
       });
       // Restart after a brief delay
       Future.delayed(const Duration(milliseconds: 1500), () {
-        if (mounted) {
+        if (mounted && !hasMadeChoice) {
           _startGame();
         }
       });
@@ -118,10 +112,15 @@ class _ReactionTestGameState extends State<ReactionTestGame> {
       // Calculate reaction time
       final now = DateTime.now();
       final reactionTime = now.difference(_greenStartTime!).inMilliseconds;
+      
+      // Cancel timer just in case
+      _delayTimer?.cancel();
+      
       setState(() {
         _state = ReactionTestState.completed;
         _reactionTimeMs = reactionTime;
       });
+      
       // Submit the reaction time
       widget.onReactionTimeRecorded(reactionTime.toString());
     }
@@ -137,7 +136,46 @@ class _ReactionTestGameState extends State<ReactionTestGame> {
       return _buildWaitingForOpponentView(context);
     }
 
+    if (_state == ReactionTestState.notStarted) {
+      return _buildStartView(context);
+    }
+
     return _buildGameView(context);
+  }
+
+  Widget _buildStartView(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.all(8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '⚡ Reaction Test',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap the dot as soon as it turns green!',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _startGame,
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Start'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildGameView(BuildContext context) {
@@ -199,8 +237,8 @@ class _ReactionTestGameState extends State<ReactionTestGame> {
 
   String _getInstructionText() {
     switch (_state) {
-      case ReactionTestState.waiting:
-        return 'Get ready...';
+      case ReactionTestState.notStarted:
+        return 'Press Start when ready';
       case ReactionTestState.ready:
         return 'Wait for green...';
       case ReactionTestState.tooEarly:
@@ -214,7 +252,7 @@ class _ReactionTestGameState extends State<ReactionTestGame> {
 
   Color _getDotColor() {
     switch (_state) {
-      case ReactionTestState.waiting:
+      case ReactionTestState.notStarted:
       case ReactionTestState.ready:
         return Colors.red;
       case ReactionTestState.tooEarly:
@@ -338,4 +376,3 @@ class _ReactionTestGameState extends State<ReactionTestGame> {
     );
   }
 }
-

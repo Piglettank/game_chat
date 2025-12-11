@@ -82,7 +82,10 @@ class _BracketCanvasState extends State<BracketCanvas> {
     // Convert global position to canvas position
     final matrix = _transformationController.value;
     final inverseMatrix = Matrix4.inverted(matrix);
-    final canvasPoint = MatrixUtils.transformPoint(inverseMatrix, point);
+    var canvasPoint = MatrixUtils.transformPoint(inverseMatrix, point);
+
+    // add offset of 66 to the y position
+    canvasPoint = Offset(canvasPoint.dx, canvasPoint.dy - 66);
 
     setState(() {
       _draggingEndPoint = canvasPoint;

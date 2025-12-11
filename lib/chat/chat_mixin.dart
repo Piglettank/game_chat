@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'message.dart';
 import 'active_user.dart';
 import 'chat_service.dart';
@@ -26,10 +27,12 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
   // Local message list to prevent full rebuilds
   List<Message> messages = [];
   List<Challenge> challenges = [];
+  List<Challenge> sentChallenges = [];
   List<ActiveUser> activeUsers = [];
   StreamSubscription<List<Message>>? messagesSubscription;
   StreamSubscription<List<Challenge>>? activeChallengesSubscription;
   StreamSubscription<List<Challenge>>? pendingChallengesSubscription;
+  StreamSubscription<List<Challenge>>? sentChallengesSubscription;
   StreamSubscription<List<ActiveUser>>? activeUsersSubscription;
   StreamSubscription<Challenge?>? currentChallengeSubscription;
 
@@ -44,6 +47,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
     listenToActiveChallenges();
     listenToMessages();
     listenToPendingChallenges();
+    listenToSentChallenges();
     listenToActiveUsers();
   }
 
@@ -53,6 +57,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
     messagesSubscription?.cancel();
     activeChallengesSubscription?.cancel();
     pendingChallengesSubscription?.cancel();
+    sentChallengesSubscription?.cancel();
     activeUsersSubscription?.cancel();
     currentChallengeSubscription?.cancel();
     leaveChat();
@@ -86,6 +91,18 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
           if (mounted) {
             setState(() {
               this.challenges = challenges;
+            });
+          }
+        });
+  }
+
+  void listenToSentChallenges() {
+    sentChallengesSubscription = chatService
+        .getSentChallenges(userId)
+        .listen((challenges) {
+          if (mounted) {
+            setState(() {
+              this.sentChallenges = challenges;
             });
           }
         });
@@ -411,7 +428,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
                     Column(
                       children: [
                         Expanded(
-                          child: messages.isEmpty && challenges.isEmpty
+                          child: messages.isEmpty && challenges.isEmpty && sentChallenges.isEmpty
                               ? const Center(
                                   child: Text(
                                     'No messages yet. Start the conversation!',
@@ -422,27 +439,37 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
                                   controller: scrollController,
                                   padding: const EdgeInsets.all(8.0),
                                   itemCount:
-                                      challenges.length + messages.length,
+                                      challenges.length + sentChallenges.length + messages.length,
                                   reverse: true,
                                   addAutomaticKeepAlives: false,
                                   addRepaintBoundaries: true,
                                   itemBuilder: (context, index) {
-                                    if (index < challenges.length) {
-                                      final challenge = challenges[index];
+                                    if (index < challenges.length + sentChallenges.length) {
+                                      Challenge challenge;
+                                      bool isSent;
+                                      
+                                      if (index < challenges.length) {
+                                        challenge = challenges[index];
+                                        isSent = false;
+                                      } else {
+                                        final sentIndex = index - challenges.length;
+                                        challenge = sentChallenges[sentChallenges.length - 1 - sentIndex];
+                                        isSent = true;
+                                      }
+                                      
                                       return ChallengeNotification(
                                         key: ValueKey(
                                           'challenge_${challenge.id}',
                                         ),
                                         challenge: challenge,
-                                        onAccept: () =>
-                                            acceptChallenge(challenge),
-                                        onReject: () =>
-                                            rejectChallenge(challenge),
+                                        currentUserId: userId,
+                                        onAccept: isSent ? () {} : () => acceptChallenge(challenge),
+                                        onReject: isSent ? () {} : () => rejectChallenge(challenge),
                                       );
                                     }
 
                                     final messageIndex =
-                                        index - challenges.length;
+                                        index - challenges.length - sentChallenges.length;
                                     final message =
                                         messages[messages.length -
                                             1 -
@@ -810,10 +837,12 @@ class _MessageWidget extends StatelessWidget {
                       onPressed: () {
                         final replyText = '/w "${message.userName}" ';
                         messageController!.text = replyText;
-                        messageController!.selection = TextSelection.fromPosition(
-                          TextPosition(offset: replyText.length),
-                        );
                         messageFocusNode?.requestFocus();
+                        SchedulerBinding.instance.addPostFrameCallback((_) {
+                          messageController!.selection = TextSelection.collapsed(
+                            offset: replyText.length,
+                          );
+                        });
                       },
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
@@ -938,10 +967,12 @@ class _ActiveUserWidget extends StatelessWidget {
                       onPressed: () {
                         final whisperText = '/w "${user.userName}" ';
                         messageController!.text = whisperText;
-                        messageController!.selection = TextSelection.fromPosition(
-                          TextPosition(offset: whisperText.length),
-                        );
                         messageFocusNode?.requestFocus();
+                        SchedulerBinding.instance.addPostFrameCallback((_) {
+                          messageController!.selection = TextSelection.collapsed(
+                            offset: whisperText.length,
+                          );
+                        });
                       },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16.0),

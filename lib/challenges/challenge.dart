@@ -51,6 +51,28 @@ class Challenge {
   factory Challenge.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     
+    DateTime createdAtDate = DateTime.now();
+    try {
+      final createdAtValue = data['createdAt'];
+      if (createdAtValue != null) {
+        if (createdAtValue is Timestamp) {
+          createdAtDate = createdAtValue.toDate();
+        } else if (createdAtValue is Map) {
+          // Handle case where timestamp might be returned as a Map
+          final seconds = createdAtValue['seconds'] as int?;
+          final nanoseconds = createdAtValue['nanoseconds'] as int?;
+          if (seconds != null) {
+            createdAtDate = DateTime.fromMillisecondsSinceEpoch(
+              seconds * 1000 + (nanoseconds ?? 0) ~/ 1000000,
+            );
+          }
+        }
+      }
+    } catch (_) {
+      // If anything goes wrong, use current time as fallback
+      createdAtDate = DateTime.now();
+    }
+    
     return Challenge(
       id: doc.id,
       challengerId: data['challengerId'] as String,
@@ -65,7 +87,7 @@ class Challenge {
         (e) => e.name == data['status'],
         orElse: () => ChallengeStatus.pending,
       ),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: createdAtDate,
       expiresAt: data['expiresAt'] != null
           ? (data['expiresAt'] as Timestamp).toDate()
           : null,

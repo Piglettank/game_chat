@@ -326,10 +326,26 @@ class ChatService {
     );
   }
 
-  /// Stream of pending challenges for a user
+  /// Stream of pending challenges for a user (where they are the challengee)
   Stream<List<Challenge>> getPendingChallenges(String userId) {
     return _challengesRef
         .where('challengeeId', isEqualTo: userId)
+        .where('status', isEqualTo: ChallengeStatus.pending.name)
+        .snapshots()
+        .map((snapshot) {
+          final challenges = snapshot.docs
+              .map((doc) => Challenge.fromFirestore(doc))
+              .toList();
+          // Sort by createdAt descending in memory to avoid composite index requirement
+          challenges.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return challenges;
+        });
+  }
+
+  /// Stream of sent challenges for a user (where they are the challenger and status is pending)
+  Stream<List<Challenge>> getSentChallenges(String userId) {
+    return _challengesRef
+        .where('challengerId', isEqualTo: userId)
         .where('status', isEqualTo: ChallengeStatus.pending.name)
         .snapshots()
         .map((snapshot) {

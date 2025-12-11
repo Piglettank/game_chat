@@ -117,7 +117,11 @@ class _BracketListScreenState extends State<BracketListScreen> {
     return Scaffold(
       body: Column(
         children: [
-          AppHeader(icon: Icons.emoji_events, title: 'Tournament Brackets'),
+          AppHeader(
+            icon: Icons.emoji_events,
+            title: 'Tournament Brackets',
+            onBack: () => Navigator.of(context).pop(),
+          ),
           Expanded(
             child: StreamBuilder<List<SavedTournamentBracket>>(
               stream: _service.getBrackets(),

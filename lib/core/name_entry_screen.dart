@@ -65,32 +65,25 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
                 ),
               ),
               const SizedBox(height: 16.0),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      _appUrl,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                    ),
-                  ),
-                  const SizedBox(width: 8.0),
-                  IconButton(
-                    icon: const Icon(Icons.copy, size: 18),
-                    tooltip: 'Copy URL',
-                    onPressed: () {
-                      Clipboard.setData(const ClipboardData(text: _appUrl));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('URL copied to clipboard'),
-                          duration: Duration(seconds: 2),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(const ClipboardData(text: _appUrl));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('URL copied to clipboard'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    _appUrl,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[600],
                         ),
-                      );
-                    },
                   ),
-                ],
+                ),
               ),
               const SizedBox(height: 16.0),
               TextButton(

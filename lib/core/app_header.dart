@@ -24,7 +24,6 @@ class AppHeader extends StatefulWidget {
 
 class _AppHeaderState extends State<AppHeader> {
   late TextEditingController _titleController;
-  bool _isEditingTitle = false;
 
   @override
   void initState() {
@@ -35,7 +34,8 @@ class _AppHeaderState extends State<AppHeader> {
   @override
   void didUpdateWidget(AppHeader oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.title != widget.title && !_isEditingTitle) {
+    if (oldWidget.title != widget.title && _titleController.text != widget.title) {
+      // Only update if the text differs (external change, not from user typing)
       _titleController.text = widget.title;
     }
   }
@@ -96,92 +96,62 @@ class _AppHeaderState extends State<AppHeader> {
             ),
             SizedBox(width: spacing),
           ],
-          // Logo / App icon
-          Container(
-            width: iconContainerSize,
-            height: iconContainerSize,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFff6b35), Color(0xFF00bcd4)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          // Logo / App icon (hidden when in edit mode)
+          if (!widget.isEditable) ...[
+            Container(
+              width: iconContainerSize,
+              height: iconContainerSize,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFff6b35), Color(0xFF00bcd4)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
+              child: Icon(widget.icon, color: Colors.white, size: iconSize),
             ),
-            child: Icon(widget.icon, color: Colors.white, size: iconSize),
-          ),
-          SizedBox(width: spacing),
+            SizedBox(width: spacing),
+          ],
           // Title (editable if enabled)
           Expanded(
             child: widget.isEditable && widget.onTitleChanged != null
-                ? (_isEditingTitle
-                      ? TextField(
-                          controller: _titleController,
-                          autofocus: true,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: fontSize,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 12,
-                            ),
-                            filled: true,
-                            fillColor: const Color(0xFF1a1a2e),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF00bcd4),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF00bcd4),
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                          onSubmitted: (value) {
-                            widget.onTitleChanged!(value);
-                            setState(() {
-                              _isEditingTitle = false;
-                            });
-                          },
-                        )
-                      : MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onDoubleTap: () {
-                              setState(() {
-                                _isEditingTitle = true;
-                              });
-                            },
-
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  widget.title,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: fontSize,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Icon(
-                                  Icons.edit,
-                                  size: 16,
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ))
+                ? TextField(
+                    controller: _titleController,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 12,
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFF1a1a2e),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF00bcd4),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF00bcd4),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      widget.onTitleChanged!(value);
+                    },
+                    onSubmitted: (value) {
+                      widget.onTitleChanged!(value);
+                    },
+                  )
                 : Text(
                     widget.title,
                     style: TextStyle(

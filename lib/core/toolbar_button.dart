@@ -6,6 +6,7 @@ class ToolbarButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isPrimary;
   final bool isDelete;
+  final bool hideTextOnMobile;
 
   const ToolbarButton({
     super.key,
@@ -14,17 +15,24 @@ class ToolbarButton extends StatelessWidget {
     required this.onTap,
     this.isPrimary = false,
     this.isDelete = false,
+    this.hideTextOnMobile = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final shouldHideText = isMobile && hideTextOnMobile;
+    
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: shouldHideText ? 12 : 16,
+            vertical: 8,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             color: isPrimary
@@ -53,19 +61,21 @@ class ToolbarButton extends StatelessWidget {
                         ? const Color(0xFFff6b35)
                         : Colors.white70,
               ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isPrimary
-                      ? const Color(0xFF00bcd4)
-                      : isDelete
-                          ? const Color(0xFFff6b35)
-                          : Colors.white70,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+              if (!shouldHideText) ...[
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: isPrimary
+                        ? const Color(0xFF00bcd4)
+                        : isDelete
+                            ? const Color(0xFFff6b35)
+                            : Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

@@ -424,7 +424,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
               icon: isUsersMenuOpen
                   ? Icons.people
                   : Icons.people_outline,
-              label: 'Users',
+              label: 'Players',
               onTap: () {
                 setState(() {
                   isUsersMenuOpen = !isUsersMenuOpen;
@@ -544,7 +544,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Active Users — ${activeUsers.length}',
+                              'Active Players — ${activeUsers.length}',
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
@@ -648,7 +648,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
     if (activeUsers.isEmpty) {
       return Center(
         child: Text(
-          'No active users',
+          'No active players',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       );

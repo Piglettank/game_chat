@@ -115,7 +115,7 @@ class _BracketListScreenState extends State<BracketListScreen> {
           AppHeader(
             icon: Icons.emoji_events,
             title: 'Tournament Brackets',
-            onBack: () => Navigator.of(context).pop(),
+            onBack: () => context.pop(),
           ),
           Expanded(
             child: StreamBuilder<List<SavedTournamentBracket>>(

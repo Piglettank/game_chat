@@ -272,7 +272,7 @@ class _TournamentBracketState extends State<TournamentBracket> {
   }
 
   void _goBack() {
-    context.go('/brackets');
+    context.pop();
   }
 
   @override
@@ -304,12 +304,14 @@ class _TournamentBracketState extends State<TournamentBracket> {
           label: 'Add Heat',
           onTap: _addHeat,
           isPrimary: true,
+          hideTextOnMobile: true,
         ),
         const SizedBox(width: 12),
         ToolbarButton(
           icon: Icons.save_outlined,
           label: 'Save',
           onTap: _saveTournament,
+          hideTextOnMobile: true,
         ),
         if (_currentBracketId != null) ...[
           const SizedBox(width: 12),
@@ -318,6 +320,7 @@ class _TournamentBracketState extends State<TournamentBracket> {
             label: 'Delete',
             onTap: _deleteBracket,
             isDelete: true,
+            hideTextOnMobile: true,
           ),
         ],
       ]);

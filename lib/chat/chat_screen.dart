@@ -98,6 +98,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with ChatMixin {
                     _isLeaderboardEditMode = false;
                   });
                 },
+                hideTextOnMobile: true,
               ),
               const SizedBox(width: 12),
               ToolbarButton(
@@ -107,6 +108,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with ChatMixin {
                   _leaderboardKey.currentState?.saveLeaderboard();
                 },
                 isPrimary: true,
+                hideTextOnMobile: true,
               ),
             ] else
               ToolbarButton(
@@ -118,6 +120,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with ChatMixin {
                   });
                 },
                 isPrimary: true,
+                hideTextOnMobile: true,
               ),
           ],
         ),

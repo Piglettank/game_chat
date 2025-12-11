@@ -185,9 +185,17 @@ class LeaderboardWidgetState extends State<LeaderboardWidget> {
           // Initialize with sorted entries to preserve view mode order
           final sortedEntries = _sortEntries(entries);
           _initializeEditMode(sortedEntries);
-          return _buildEditMode(context);
+          return Column(
+            children: [
+              Expanded(child: _buildEditMode(context)),
+            ],
+          );
         } else {
-          return _buildViewMode(context, entries);
+          return Column(
+            children: [
+              Expanded(child: _buildViewMode(context, entries)),
+            ],
+          );
         }
       },
     );
@@ -196,74 +204,70 @@ class LeaderboardWidgetState extends State<LeaderboardWidget> {
   Widget _buildViewMode(BuildContext context, List<LeaderboardEntry> entries) {
     final sortedEntries = _sortEntries(entries);
 
-    return Expanded(
-      child: sortedEntries.isEmpty
-          ? Center(
-              child: Text(
-                'No participants yet',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-            )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: sortedEntries.length,
-                  itemBuilder: (context, index) {
-                    final entry = sortedEntries[index];
-                    return _LeaderboardEntryWidget(
-                      entry: entry,
-                      rank: index + 1,
-                    );
-                  },
-                ),
-    );
+    return sortedEntries.isEmpty
+        ? Center(
+            child: Text(
+              'No participants yet',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.all(8.0),
+            itemCount: sortedEntries.length,
+            itemBuilder: (context, index) {
+              final entry = sortedEntries[index];
+              return _LeaderboardEntryWidget(
+                entry: entry,
+                rank: index + 1,
+              );
+            },
+          );
   }
 
   Widget _buildEditMode(BuildContext context) {
     // Use edit entries
     final displayEntries = _editEntries;
 
-    return Expanded(
-      child: Column(
-        children: [
-          Expanded(
-            child: displayEntries.isEmpty
-                ? Center(
-                    child: Text(
-                      'No participants. Add one to get started!',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(8.0),
-                    itemCount: displayEntries.length,
-                    itemBuilder: (context, index) {
-                      final entry = displayEntries[index];
-                      return _EditableLeaderboardEntryWidget(
-                        entry: entry,
-                        nameController: _nameControllers[entry.id]!,
-                        scoreController: _scoreControllers[entry.id]!,
-                        onDelete: () => _removeParticipant(entry.id),
-                      );
-                    },
+    return Column(
+      children: [
+        Expanded(
+          child: displayEntries.isEmpty
+              ? Center(
+                  child: Text(
+                    'No participants. Add one to get started!',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton.icon(
-              onPressed: _addParticipant,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Participant'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 48),
-              ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(8.0),
+                  itemCount: displayEntries.length,
+                  itemBuilder: (context, index) {
+                    final entry = displayEntries[index];
+                    return _EditableLeaderboardEntryWidget(
+                      entry: entry,
+                      nameController: _nameControllers[entry.id]!,
+                      scoreController: _scoreControllers[entry.id]!,
+                      onDelete: () => _removeParticipant(entry.id),
+                    );
+                  },
+                ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ElevatedButton.icon(
+            onPressed: _addParticipant,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Participant'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -33,8 +33,8 @@ class WelcomeScreen extends StatelessWidget {
               Text(
                 'Scan to Join',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16.0),
               Container(
@@ -53,9 +53,9 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 16.0),
               Text(
                 _appUrl,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
               ),
               const SizedBox(height: 16.0),
               TextButton(
@@ -80,11 +80,12 @@ class WelcomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                SizedBox(height: MediaQuery.sizeOf(context).height * 0.1),
                 Text(
                   'Welcome to Game Night',
                   style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 48.0),
                 SizedBox(

@@ -124,13 +124,13 @@ class ChatService {
   /// Make a choice in a challenge
   Future<void> makeChoice({
     required String challengeId,
-    required String userId,
+    required String visitorId,
     required String choice,
   }) async {
     final challengeDoc = await _challengesRef.doc(challengeId).get();
     final challenge = Challenge.fromFirestore(challengeDoc);
 
-    final isChallenger = challenge.challengerId == userId;
+    final isChallenger = challenge.challengerId == visitorId;
     final choiceField = isChallenger ? 'challenger' : 'challengee';
 
     final updateData = <String, dynamic>{'choices.$choiceField': choice};
@@ -139,82 +139,120 @@ class ChatService {
     final newChoices = Map<String, String?>.from(challenge.choices);
     newChoices[choiceField] = choice;
 
-    if (newChoices['challenger'] != null && newChoices['challengee'] != null) {
-      // Both choices made, calculate result
-      updateData['status'] = ChallengeStatus.inProgress.name;
+    final bothChoicesMade = newChoices['challenger'] != null && newChoices['challengee'] != null;
 
-      final Map<String, dynamic> result;
-      if (challenge.gameType == GameType.reactionTest) {
-        result = GameService.calculateReactionTestResult(
-          challengerChoice: newChoices['challenger']!,
-          challengeeChoice: newChoices['challengee']!,
-          challengerId: challenge.challengerId,
-          challengerName: challenge.challengerName,
-          challengeeId: challenge.challengeeId,
-          challengeeName: challenge.challengeeName,
-        );
-      } else if (challenge.gameType == GameType.findTheGoat) {
-        result = GameService.calculateFindTheGoatResult(
-          challengerChoice: newChoices['challenger']!,
-          challengeeChoice: newChoices['challengee']!,
-          challengerId: challenge.challengerId,
-          challengerName: challenge.challengerName,
-          challengeeId: challenge.challengeeId,
-          challengeeName: challenge.challengeeName,
-        );
-      } else {
-        result = GameService.calculateRockPaperScissorsResult(
-          challengerChoice: newChoices['challenger']!,
-          challengeeChoice: newChoices['challengee']!,
-          challengerId: challenge.challengerId,
-          challengerName: challenge.challengerName,
-          challengeeId: challenge.challengeeId,
-          challengeeName: challenge.challengeeName,
-        );
-      }
-
-      updateData['result'] = result;
-      updateData['status'] = ChallengeStatus.completed.name;
-
-      await _challengesRef.doc(challengeId).update(updateData);
-
-      // Only challenger sends the result message to chat
-      if (isChallenger) {
-        final String resultMessage;
-        if (challenge.gameType == GameType.reactionTest) {
-          resultMessage = _formatReactionTestResultMessage(
-            challengerName: challenge.challengerName,
-            challengeeName: challenge.challengeeName,
-            result: result,
-          );
-        } else if (challenge.gameType == GameType.findTheGoat) {
-          resultMessage = _formatFindTheGoatResultMessage(
-            challengerName: challenge.challengerName,
-            challengeeName: challenge.challengeeName,
-            result: result,
-          );
-        } else {
-          resultMessage = _formatChallengeResultMessage(
-            challengerName: challenge.challengerName,
-            challengeeName: challenge.challengeeName,
-            challengerChoice: newChoices['challenger']!,
-            challengeeChoice: newChoices['challengee']!,
-            challengerId: challenge.challengerId,
-            result: result,
-          );
-        }
-
-        await sendMessage(
-          message: resultMessage,
-          userId: 'system',
-          userName: '[Challenge]',
-        );
-      }
+    if (bothChoicesMade && isChallenger) {
+      // Challenger calculates and saves result
+      await _calculateAndSaveResult(
+        challengeId: challengeId,
+        challenge: challenge,
+        newChoices: newChoices,
+        updateData: updateData,
+      );
     } else {
-      // Still waiting for other player
+      // Just save the choice, don't calculate result
+      // If challengee makes last choice, challenger's listener will detect and calculate
       updateData['status'] = ChallengeStatus.accepted.name;
       await _challengesRef.doc(challengeId).update(updateData);
     }
+  }
+
+  /// Calculate and save result - only called by challenger
+  Future<void> calculateResult(String visitorId, String challengeId) async {
+    final challengeDoc = await _challengesRef.doc(challengeId).get();
+    if (!challengeDoc.exists) return;
+    
+    final challenge = Challenge.fromFirestore(challengeDoc);
+    
+    // Only challenger can calculate
+    if (challenge.challengerId != visitorId) return;
+    
+    // Don't recalculate if already completed
+    if (challenge.isCompleted || challenge.result != null) return;
+    
+    // Both choices must be made
+    if (!challenge.bothChoicesMade) return;
+
+    final updateData = <String, dynamic>{};
+    await _calculateAndSaveResult(
+      challengeId: challengeId,
+      challenge: challenge,
+      newChoices: challenge.choices,
+      updateData: updateData,
+    );
+  }
+
+  Future<void> _calculateAndSaveResult({
+    required String challengeId,
+    required Challenge challenge,
+    required Map<String, String?> newChoices,
+    required Map<String, dynamic> updateData,
+  }) async {
+    final Map<String, dynamic> result;
+    if (challenge.gameType == GameType.reactionTest) {
+      result = GameService.calculateReactionTestResult(
+        challengerChoice: newChoices['challenger']!,
+        challengeeChoice: newChoices['challengee']!,
+        challengerId: challenge.challengerId,
+        challengerName: challenge.challengerName,
+        challengeeId: challenge.challengeeId,
+        challengeeName: challenge.challengeeName,
+      );
+    } else if (challenge.gameType == GameType.findTheGoat) {
+      result = GameService.calculateFindTheGoatResult(
+        challengerChoice: newChoices['challenger']!,
+        challengeeChoice: newChoices['challengee']!,
+        challengerId: challenge.challengerId,
+        challengerName: challenge.challengerName,
+        challengeeId: challenge.challengeeId,
+        challengeeName: challenge.challengeeName,
+      );
+    } else {
+      result = GameService.calculateRockPaperScissorsResult(
+        challengerChoice: newChoices['challenger']!,
+        challengeeChoice: newChoices['challengee']!,
+        challengerId: challenge.challengerId,
+        challengerName: challenge.challengerName,
+        challengeeId: challenge.challengeeId,
+        challengeeName: challenge.challengeeName,
+      );
+    }
+
+    updateData['result'] = result;
+    updateData['status'] = ChallengeStatus.completed.name;
+
+    await _challengesRef.doc(challengeId).update(updateData);
+
+    // Send result message to chat
+    final String resultMessage;
+    if (challenge.gameType == GameType.reactionTest) {
+      resultMessage = _formatReactionTestResultMessage(
+        challengerName: challenge.challengerName,
+        challengeeName: challenge.challengeeName,
+        result: result,
+      );
+    } else if (challenge.gameType == GameType.findTheGoat) {
+      resultMessage = _formatFindTheGoatResultMessage(
+        challengerName: challenge.challengerName,
+        challengeeName: challenge.challengeeName,
+        result: result,
+      );
+    } else {
+      resultMessage = _formatChallengeResultMessage(
+        challengerName: challenge.challengerName,
+        challengeeName: challenge.challengeeName,
+        challengerChoice: newChoices['challenger']!,
+        challengeeChoice: newChoices['challengee']!,
+        challengerId: challenge.challengerId,
+        result: result,
+      );
+    }
+
+    await sendMessage(
+      message: resultMessage,
+      userId: 'system',
+      userName: '[Challenge]',
+    );
   }
 
   /// Stream of pending challenges for a user

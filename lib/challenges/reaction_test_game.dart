@@ -121,8 +121,12 @@ class _ReactionTestGameState extends State<ReactionTestGame> {
         _reactionTimeMs = reactionTime;
       });
       
-      // Submit the reaction time
-      widget.onReactionTimeRecorded(reactionTime.toString());
+      // Show result for 1 second before submitting
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted && !hasMadeChoice) {
+          widget.onReactionTimeRecorded(reactionTime.toString());
+        }
+      });
     }
   }
 

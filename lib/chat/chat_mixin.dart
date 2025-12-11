@@ -160,10 +160,20 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
   void listenToChallengeUpdates(String challengeId) {
     currentChallengeSubscription = chatService
         .getChallenge(challengeId)
-        .listen((challenge) {
+        .listen((challenge) async {
           if (!mounted) return;
 
           if (challenge != null) {
+            // If we're the challenger and both choices are made but no result, calculate
+            final isChallenger = challenge.challengerId == userId;
+            if (isChallenger &&
+                challenge.bothChoicesMade &&
+                challenge.result == null &&
+                !challenge.isCompleted) {
+              await chatService.calculateResult(userId, challengeId);
+              return; // Will get another update after result is saved
+            }
+
             if (completionDelayTimer == null) {
               setState(() {
                 activeChallenge = challenge;
@@ -307,7 +317,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
 
     await chatService.makeChoice(
       challengeId: activeChallenge!.id,
-      userId: userId,
+      visitorId: userId,
       choice: choice.name,
     );
   }
@@ -317,7 +327,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
 
     await chatService.makeChoice(
       challengeId: activeChallenge!.id,
-      userId: userId,
+      visitorId: userId,
       choice: reactionTimeMs,
     );
   }
@@ -327,7 +337,7 @@ mixin ChatMixin<T extends StatefulWidget> on State<T> {
 
     await chatService.makeChoice(
       challengeId: activeChallenge!.id,
-      userId: userId,
+      visitorId: userId,
       choice: choice,
     );
   }

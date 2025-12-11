@@ -171,59 +171,129 @@ class _BracketListScreenState extends State<BracketListScreen> {
                   itemCount: brackets.length,
                   itemBuilder: (context, index) {
                     final bracket = brackets[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        contentPadding: const EdgeInsets.only(
-                          left: 12,
-                          right: 16,
-                          top: 8,
-                          bottom: 8,
-                        ),
-                        leading: BracketThumbnail(
-                          tournament: bracket.tournament,
-                          width: 100,
-                          height: 64,
-                        ),
-                        title: Text(
-                          bracket.title,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            'Updated ${_formatTimestamp(bracket.updatedAt)}',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isSmallScreen = constraints.maxWidth < 400;
+
+                        if (isSmallScreen) {
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: InkWell(
+                              onTap: () => _viewBracket(bracket),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      bracket.title,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Updated ${_formatTimestamp(bracket.updatedAt)}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        BracketThumbnail(
+                                          tournament: bracket.tournament,
+                                          width: 100,
+                                          height: 64,
+                                        ),
+                                        const Spacer(),
+                                        ToolbarButton(
+                                          icon: Icons.edit,
+                                          label: 'Edit',
+                                          onTap: () => _editBracket(bracket),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ToolbarButton(
+                                          icon: Icons.delete,
+                                          label: 'Delete',
+                                          onTap: () => _deleteBracket(bracket),
+                                          isDelete: true,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
+                              ),
+                            ),
+                          );
+                        }
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: ListTile(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.only(
+                              left: 12,
+                              right: 16,
+                              top: 8,
+                              bottom: 8,
+                            ),
+                            leading: BracketThumbnail(
+                              tournament: bracket.tournament,
+                              width: 100,
+                              height: 64,
+                            ),
+                            title: Text(
+                              bracket.title,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                'Updated ${_formatTimestamp(bracket.updatedAt)}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ToolbarButton(
+                                  icon: Icons.edit,
+                                  label: 'Edit',
+                                  onTap: () => _editBracket(bracket),
+                                ),
+                                const SizedBox(width: 8),
+                                ToolbarButton(
+                                  icon: Icons.delete,
+                                  label: 'Delete',
+                                  onTap: () => _deleteBracket(bracket),
+                                  isDelete: true,
+                                ),
+                              ],
+                            ),
+                            onTap: () => _viewBracket(bracket),
                           ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ToolbarButton(
-                              icon: Icons.edit,
-                              label: 'Edit',
-                              onTap: () => _editBracket(bracket),
-                            ),
-                            const SizedBox(width: 8),
-                            ToolbarButton(
-                              icon: Icons.delete,
-                              label: 'Delete',
-                              onTap: () => _deleteBracket(bracket),
-                              isDelete: true,
-                            ),
-                          ],
-                        ),
-                        onTap: () => _viewBracket(bracket),
-                      ),
+                        );
+                      },
                     );
                   },
                 );
